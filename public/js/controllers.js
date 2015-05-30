@@ -17,7 +17,7 @@ function include(arr,obj) {
     return (arr.indexOf(obj) != -1);
 }
 function appCtrl($scope, $http, $location, $rootScope) {
-    console.log('Hello fromo app controller.');
+    console.log('Hello from app controller.');
 }
 
 
