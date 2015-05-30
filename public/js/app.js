@@ -19,7 +19,7 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
     $routeProvider.when('/home',     {templateUrl: 'partials/home',     controller:      mapCtrl});
 
     //	//Default path
-    $routeProvider.otherwise({redirectTo: '/charts'});
+    $routeProvider.otherwise({redirectTo: '/home'});
     $locationProvider.html5Mode(true);
 }]);
 
