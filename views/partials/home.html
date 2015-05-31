@@ -1,3 +1,25 @@
-
-<h1>Hello</h1>
+<div>
+  <h1 class="pure-u-1-1">CloudLock Fitness</h1>
+  <a href="http://clayton-smith.com:3000/auth/fitbit"><button class="pure-button">Join Our Team</button></a>
+  <hr>
   
+  <div isteven-omni-bar current-value="percentageValue"></div>
+  <leaflet class="pure-u-1-1" center="center" paths="paths" markers="markers" defaults="defaults" height="500"></leaflet>
+
+  
+  <nvd3-multi-bar-horizontal-chart
+     class="pure-u-1-1 bar axis"
+     data="exampleData"
+     id="exampleI"
+     yAxisTickFormat="yAxisTickFormatFunction()"
+     width="550"
+     height="250"
+     showvalues="true"
+     showXAxis="true"
+     showYAxis="true"
+     title="Test"
+     margin="{left:75,top:60,bottom:60,right:10}">
+    <svg class="chart"></svg>
+  </nvd3-multi-bar-horizontal-chart>
+  
+</div>  

@@ -25,7 +25,9 @@
     "leaflet": "~0.7.3",
     "nvd3": "~1.7.1",
     "angularjs-nvd3-directives": "~0.0.7",
-    "angular-leaflet-directive": "~0.8.1"
+    "angular-leaflet-directive": "~0.8.1",
+    "pure": "~0.6.0",
+    "angular-omni-bar": "~1.0.1"
   },
   "resolutions": {
     "d3": "~3.5.5",
