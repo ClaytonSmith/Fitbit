@@ -16,3 +16,7 @@
 .navbar .join-us {
     vertical-align: super;
 }
+
+svg {
+    width: 100% !important;
+}
