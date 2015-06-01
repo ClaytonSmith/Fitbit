@@ -17,6 +17,6 @@
     vertical-align: super;
 }
 
-svg {
+.container svg {
     width: 100% !important;
 }
