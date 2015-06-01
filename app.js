@@ -25,6 +25,7 @@ app.use(function(req, res, next) {
     next();
 })
 
+
 // all the environments
 app.set('port', process.env.PORT || 3000);
 app.set('views', __dirname + '/views');
@@ -42,18 +43,20 @@ app.use(passport.session());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(app.router);
 
-passport.serializeUser(  function(user, done) { done(null, user);});
-passport.deserializeUser(function(obj,  done) { done(null, obj); });
-
 passport.use(new FitbitStrategy({
     consumerKey: FITBIT_CONSUMER_KEY,
     consumerSecret: FITBIT_CONSUMER_SECRET,
     callbackURL: "http://127.0.0.1:3000/auth/fitbit/callback"
 },function(token, tokenSecret, profile, done) {
     process.nextTick(function () {
+	console.log('test');
 	return done(null, profile);
     });
 })); 
+
+passport.serializeUser(  function(user, done) { done(null, user);});
+passport.deserializeUser(function(obj,  done) { done(null, obj); });
+
 
 app.get('/auth/fitbit',
 	passport.authenticate('fitbit'),
@@ -62,14 +65,17 @@ app.get('/auth/fitbit',
   });
 
 app.get('/auth/fitbit/callback',
-	passport.authenticate('fitbit'),
+	passport.authenticate('fitbit'),//, { failureRedirect: 'https://google.com' }),
 	function(req, res){
 	    console.log( req.user.displayName+ " has been added to the team." );
-	    db.keys.insert({
-		keys: req.query,
-		user: req.user
-	    }, {w: 0});
 	    res.redirect('/');
+//	    db.keys.insert({
+//		uID:  req.user.id,/
+//	    	keys: req.query,//
+//		user: req.user/
+//	    }, {w: 0});
+	    console.log(req.user);
+	    console.log(req.query);
 	});
 
 // development only
@@ -89,6 +95,7 @@ app.get('/partials/:name', routes.partial );
 app.get('/api/info',               api.info);
 app.get('/api/req_update',         api.update);
 app.post('/api/add_user',          api.addUser);
+
 
 // redirect all others to the index (HTML5 history)
 // 404 page collector
