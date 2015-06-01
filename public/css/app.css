@@ -1,0 +1,18 @@
+.navbar {
+    background: #29323d;
+    height: 50px;
+}
+
+.navbar .brand {
+    margin: 15px 0 0 24px;
+    width: 124px;
+    height: 21px;
+    background: url('/img/cloudlock.svg') no-repeat top left;
+    background-size: contain;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.navbar .join-us {
+    vertical-align: super;
+}
