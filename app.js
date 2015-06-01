@@ -67,16 +67,35 @@ app.get('/auth/fitbit',
 app.get('/auth/fitbit/callback',
 	passport.authenticate('fitbit'),//, { failureRedirect: 'https://google.com' }),
 	function(req, res){
-	    console.log( req.user.displayName+ " has been added to the team." );
 	    res.redirect('/');
-//	    db.keys.insert({
-//		uID:  req.user.id,/
-//	    	keys: req.query,//
-//		user: req.user/
-//	    }, {w: 0});
-	    console.log(req.user);
-	    console.log(req.query);
-	});
+	    // Insert NEW user into the database 
+	    db.keys.findOne(
+		{uID: req.user.id},
+		function(err, user){
+
+		    // Server error
+		    if(err){
+			console.log( "Server error" );
+			res.status(500).json({error: "Server error."}) ;
+		    }
+		    
+		    // User already added
+		    if(user){
+			console.log(req.user.displayName+ " already in the database.");
+			console.log( "User already in the database." );
+			res.status(403).json({error: "User already in the database."}) ;
+			
+			// Insert new user 
+		    } else {
+			console.log( req.user.displayName+ " has been added to the team." );
+			
+			db.keys.insert({
+			    uID:  req.user.id,
+			    keys: req.query,
+			}, {w: 0});
+		    }
+		});
+	});	    
 
 // development only
 if (app.get('env') === 'development') {
