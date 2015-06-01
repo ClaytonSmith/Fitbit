@@ -26,7 +26,8 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     console.log("Hello from map controller.");
     
     var startDest = {lat: 42.3699388, lng: -71.2458321}; // CloudLock HQ
-    var endDest   = {lat: 37.790599,  lng: -71.2458321};
+    var endDest   = {lat: 45.5168567, lng: -122.6725146}; // Salesforce HQ
+
     $scope.gotStuff = false;
 
     function randomColor(seed){
@@ -52,13 +53,13 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     };
     
     var usersDistance = [
-	{name: 'Tom',      distance: 10.2, avatar: "https://pbs.twimg.com/profile_images/517321674471923712/bFqGdWJL_400x400.jpeg"},
-	{name: 'Jan',      distance: 20.3, avatar: "http://zohararad.github.io/presentations/falling-in-love-with-ruby/presentation/images/ruby.png"},
-	{name: 'Mike',     distance: 50.1, avatar: "https://flyingonemptythoughts.files.wordpress.com/2013/06/neutral-its-something-l.png"},
-	{name: 'Jane',     distance: 40.5, avatar: "http://img3.wikia.nocookie.net/__cb20120826123355/vssaxtonhale/images/c/c2/Troll-face.png"},
-	{name: 'Bobbert',  distance: 40.3, avatar: "http://images4.fanpop.com/image/photos/19700000/Horton-hears-a-who-pics-horton-hears-a-who-19717311-1109-529.jpg"},
-	{name: 'Sarah',    distance: 10.3, avatar: "https://pbs.twimg.com/profile_images/447460759329460224/mt2UmwGG_400x400.jpeg"},
-	{name: 'Tedison',  distance: 30.2, avatar: "https://www.petfinder.com/wp-content/uploads/2012/11/122163343-conditioning-dog-loud-noises-632x475.jpg"} 
+	{name: 'Tom',      distance: 100.2, avatar: "https://pbs.twimg.com/profile_images/517321674471923712/bFqGdWJL_400x400.jpeg"},
+	{name: 'Jan',      distance: 200.3, avatar: "http://zohararad.github.io/presentations/falling-in-love-with-ruby/presentation/images/ruby.png"},
+	{name: 'Mike',     distance: 500.1, avatar: "https://flyingonemptythoughts.files.wordpress.com/2013/06/neutral-its-something-l.png"},
+	{name: 'Jane',     distance: 400.5, avatar: "http://img3.wikia.nocookie.net/__cb20120826123355/vssaxtonhale/images/c/c2/Troll-face.png"},
+	{name: 'Bobbert',  distance: 400.3, avatar: "http://images4.fanpop.com/image/photos/19700000/Horton-hears-a-who-pics-horton-hears-a-who-19717311-1109-529.jpg"},
+	{name: 'Sarah',    distance: 100.3, avatar: "https://pbs.twimg.com/profile_images/447460759329460224/mt2UmwGG_400x400.jpeg"},
+	{name: 'Tedison',  distance: 300.2, avatar: "https://www.petfinder.com/wp-content/uploads/2012/11/122163343-conditioning-dog-loud-noises-632x475.jpg"} 
     ];
     
     
@@ -72,16 +73,23 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     console.log("Real Fitbit users added to user list.");
     
     usersDistance.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
-    totalDistance = usersDistance.reduce(function(a,b){ console.log(a) ; return a + b.distance  ; }, 0);
+    totalDistance = usersDistance.reduce(function(a,b){ console.log(a) ; return a + b.distance  ; }, 0) * 1.60934 ;
     console.log("Users assigned color", usersDistance);
     
-    $scope.percentageValue = totalDistance /  getDistanceFromLatLonInKm(startDest.lat, startDest.lng, endDest.lat, endDest.lng);
-
 
     usersDistance = calcPaths(usersDistance);
     createPaths(usersDistance);
     console.log("Paths added");
     
+
+    
+    var calculatedDist = getDistanceFromLatLonInM(usersDistance[usersDistance.length - 1].path.start.lat, usersDistance[usersDistance.length - 1].path.end.lng, startDest.lat, startDest.lng);
+    
+    console.log('DISTACNE', totalDistance, calculatedDist);
+
+    
+    $scope.percentageValue = calculatedDist / getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
+
     var centerCoords   =  getMidpoint(usersDistance[usersDistance.length - 1].path.start, usersDistance[0].path.end);
     $scope.center.lat  =  centerCoords.lat;
     $scope.center.lng  =  centerCoords.lng;
@@ -91,7 +99,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
 	return function(d, i) {
 	    return userDistance[i].color;
 	};
-    };
+   };
     
     // Map user distance to D3 compliant data object.
     $scope.exampleData =
@@ -116,17 +124,22 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     };
 
     
-    function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
-	var R = 6378.1; // Radius of the earth in km
-	var dLat = deg2rad(lat2-lat1);  // deg2rad below
-	var dLon = deg2rad(lon2-lon1); 
-	var a = 
-	    Math.sin(dLat/2) * Math.sin(dLat/2) +
-	    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-	    Math.sin(dLon/2) * Math.sin(dLon/2)
-	; 
+    function getDistanceFromLatLonInM(lat1,lon1,lat2,lon2) {
+	Number.prototype.toRad = function() {
+	    return this * Math.PI / 180;
+	}
+	var R = 6371; // km 
+	//has a problem with the .toRad() method below.
+	var x1 = lat2-lat1;
+	var dLat = x1.toRad();  
+	var x2 = lon2-lon1;
+	var dLon = x2.toRad();  
+	var a = Math.sin(dLat/2) * Math.sin(dLat/2) + 
+            Math.cos(lat1.toRad()) * Math.cos(lat2.toRad()) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);  
 	var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-	var d = R * c; // Distance in km
+	var d = R * c; 
+	console.log('THERE', d);
 	return d;
     }
 
