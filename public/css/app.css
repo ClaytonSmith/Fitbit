@@ -17,6 +17,6 @@
     vertical-align: super;
 }
 
-.container svg {
-    width: 100% !important;
+.chart {
+    width: 100%;
 }
