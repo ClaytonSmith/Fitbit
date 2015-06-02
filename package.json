@@ -5,6 +5,7 @@
   "dependencies": {
     "ejs": "^2.3.1",
     "express": "~3.2.6",
+    "fitbit": "0.0.6",
     "fitbit-js": "^0.3.1",
     "fitbit-node": "^0.1.0",
     "less-middleware": "^2.0.1",
