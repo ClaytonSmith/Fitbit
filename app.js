@@ -3,16 +3,21 @@ var express         = require('express'),
     api             = require('./routes/api'),
     http            = require('http'),
     path            = require('path'),
-    passport        = require('passport'),
-    FitbitStrategy  = require('passport-fitbit').Strategy;
+    passport        = require('passport');
+//    FitbitStrategy  = require('passport-fitbit').Strategy;
+//    Fitbit          = require("fitbit-node");
 
 var config = require('./config.json');
 
 // Dont want API keys floating around on the internet
-var FITBIT_CONSUMER_KEY    = config.FITGIT_KEY;
-var FITBIT_CONSUMER_SECRET = config.FITGIT_SECRET;
+var FITBIT_CONSUMER_KEY    = config.FITBIT_KEY;
+var FITBIT_CONSUMER_SECRET = config.FITBIT_SECRET;
+
+
+//var client = new FitbitApiClient(config.FITGIT_KEY, config.FITGIT_SECRET );
 
 var app = module.exports = express();
+
 
 var mongo   = require('mongoskin'),
     db      = mongo.db(config.mongo_link, {native_parser:true});
@@ -24,7 +29,6 @@ app.use(function(req, res, next) {
     req.db = db;
     next();
 })
-
 
 // all the environments
 app.set('port', process.env.PORT || 3000);
@@ -43,59 +47,92 @@ app.use(passport.session());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(app.router);
 
-passport.use(new FitbitStrategy({
-    consumerKey: FITBIT_CONSUMER_KEY,
-    consumerSecret: FITBIT_CONSUMER_SECRET,
-    callbackURL: "http://127.0.0.1:3000/auth/fitbit/callback"
-},function(token, tokenSecret, profile, done) {
-    process.nextTick(function () {
-	console.log('test');
-	return done(null, profile);
+var requestTokenSecrets = {};
+
+var session = {};
+
+var FitbitApiClient = require("fitbit-node"),
+    client = new FitbitApiClient(config.FITBIT_KEY, config.FITBIT_SECRET);
+
+var requestTokenSecrets = {};
+
+app.get("/authorize", function (req, res) {
+    client.getRequestToken().then(function (results) {
+	var token = results[0],
+	    secret = results[1];
+	requestTokenSecrets[token] = secret;
+	console.log(token);
+	res.redirect("http://www.fitbit.com/oauth/authorize?oauth_token=" + token);
+    }, function (error) {
+	res.send(error);
     });
-})); 
-
-passport.serializeUser(  function(user, done) { done(null, user);});
-passport.deserializeUser(function(obj,  done) { done(null, obj); });
+});
 
 
-app.get('/auth/fitbit',
-	passport.authenticate('fitbit'),
-	function(req, res){
-	    // Empty 
-  });
+app.get("/thankyou", function (req, res) {
 
-app.get('/auth/fitbit/callback',
-	passport.authenticate('fitbit'),//, { failureRedirect: 'https://google.com' }),
-	function(req, res){
-	    res.redirect('/');
-	    // Insert NEW user into the database 
-	    db.keys.findOne(
-		{uID: req.user.id},
-		function(err, user){
-
-		    // Server error
-		    if(err){
-			console.log( "Server error" );
-			res.status(500).json({error: "Server error."}) ;
-		    }
+    var token = req.query.oauth_token,
+	secret = requestTokenSecrets[token],
+	verifier = req.query.oauth_verifier;
+    client.getAccessToken(token, secret, verifier).then(function (results) {
+	var accessToken = results[0],
+	    accessTokenSecret = results[1],
+	    userId = results[2].encoded_user_id;
+	console.log( accessToken, accessTokenSecret);
+	
+	routes.index(req, res);
+	
+	db.keys.findOne(
+	    {atc:  accessToken},
+	    function(err, user){
+		
+		// Server error
+		if(err){
+		    console.log( "Server error" );
+		    res.status(500).json({error: "Server error."}) ;	    
+		}
+		
+		// User already added
+		if(user){
+		    console.log( "User already in the database." );
+		    res.status(403).json({error: "User already in the database."}) ;
 		    
-		    // User already added
-		    if(user){
-			console.log(req.user.displayName+ " already in the database.");
-			console.log( "User already in the database." );
-			res.status(403).json({error: "User already in the database."}) ;
-			
-			// Insert new user 
-		    } else {
-			console.log( req.user.displayName+ " has been added to the team." );
-			
-			db.keys.insert({
-			    uID:  req.user.id,
-			    keys: req.query,
-			}, {w: 0});
-		    }
-		});
-	});	    
+		    // Insert new user 
+		} else {
+		    console.log( "User has been added to the team." );
+		    db.keys.insert({
+			atc:  accessToken,
+			tokens: {
+			    access_token: accessToken,
+			    access_token_secret: accessTokenSecret
+			}}, {w: 0});	
+		    
+		    routes.index(req, res);
+		    
+/*		    client.requestResource("/profile.json", "GET",
+					   accessToken,	  
+					   accessTokenSecret).then(function (results) {
+					       var response = results[0];
+					       
+					       
+					       
+					       } );*/
+		}
+		
+	    });
+	
+
+	routes.index(req, res);
+    }, function (error) {
+	res.send(error);
+    });
+});
+
+
+/*
+  
+ */
+app.listen(6544);
 
 // development only
 if (app.get('env') === 'development') {
@@ -104,7 +141,7 @@ if (app.get('env') === 'development') {
 
 // production only
 if (app.get('env') === 'production') {
-  // TODO
+    // TODO
 }; 
 
 // Routes
@@ -118,9 +155,14 @@ app.post('/api/add_user',          api.addUser);
 
 // redirect all others to the index (HTML5 history)
 // 404 page collector
-app.get('*', routes.index);
+
 app.get('/', function(req, res) {
-    res.sendFile(__dirname + "/views/index.html"); 
+    routes.index(req, res);
+    //res.sendFile(__dirname + "/views/index.html"); );
+});
+var set = false ;
+app.get('*', function(req, res) {
+    routes.index(req, res);
 });
 
 // Start Server
@@ -128,5 +170,46 @@ http.createServer(app).listen(app.get('port'), function () {
     console.log('Express server listening on port ' + app.get('port'));
 });
 
+var minutes = .5, the_interval = minutes * 60 * 1000;
+setInterval(function() {
+    console.log("I am doing my 5 minutes check");
+        db.keys.find({}, function(err, result) {
+	result.each(function(err, user) {
+	    if( !user ) return ;
+	    
+	    console.log( client.requestResource("/activities/distance.json", "GET",
+						user.tokens.access_token,	  
+						user.tokens.access_token_secret).then(function (results) {
+						    
+						    var response = results[0];
+						    
+						    console.log(response);	    
+						}));
+	    
+	    
+	});
+    });
+
+    
+    // do your stuff here
+}, the_interval);
 
 
+    db.keys.find({}, function(err, result) {
+	result.each(function(err, user) {
+	    if( !user ) return ;
+	    
+	    console.log( client.requestResource("/activities/date/2015-6-1.json", "GET",
+						user.tokens.access_token,	  
+						user.tokens.access_token_secret).then(function (results) {
+
+
+						    
+						    var response = results[0];
+						    
+						    console.log(response);	    
+						}));
+	    
+	    
+	});
+    });

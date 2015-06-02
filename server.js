@@ -7,11 +7,11 @@ var mongo   = require('mongoskin'),
     db      = mongo.db(config.mongo_link, {native_parser:true});
 
 
-var client = new FitbitApiClient(config.FITGIT_KEY, config.FITGIT_SECRET );
-
-
 db.bind('keys');
 db.bind('users');
+
+var client = new FitbitApiClient(config.FITBIT_KEY, config.FITBIT_SECRET );
+
 
 /*
 db.keys.find().each( function( err, doc){
@@ -25,16 +25,18 @@ function updateDB(){
 	    if( !user ) return ;
 	    console.log("Here is a user key", user.keys);	    
 //	    console.log( user );
+
+	     
 	    console.log( client.requestResource("/profile.json", "GET",
-				   user.keys.oauth_token,	  
-				   user.keys.oauth_verifier).then(function (results) {
-				       
-				       var response = results[0];
-				       // res.send(response);
-				       console.log(response);	    
-				   }));
-
-
+						user.keys.oauth_token,	  
+						user.keys.oauth_verifier).then(function (results) {
+						    
+						    var response = results[0];
+						    // res.send(response);
+						    console.log(response);	    
+						}));
+	    
+	    
 	});
     });
 }
