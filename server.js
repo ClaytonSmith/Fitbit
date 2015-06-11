@@ -24,17 +24,24 @@ function updateDB(){
 	result.each(function(err, user) {
 	    if( !user ) return ;
 	    console.log("Here is a user key", user.keys);	    
-//	    console.log( user );
-
-	     
-	    console.log( client.requestResource("/.json", "GET",
-						user.keys.oauth_token,	  
-						user.keys.oauth_verifier).then(function (results) {
+	    //	    console.log( user );
+	    
+	    console.log(user.tokens.access_token, user.tokens.access_token_secret);
+	    
+	    console.log( client.requestResource("/activities/date/2015-06-01.json", "GET",
+						user.tokens.access_token,	  
+						user.tokens.access_token_secret).then(function (results) {
 						    
 						    var response = results[0];
-						    // res.send(response);
-						    console.log(response);	    
+
+						    
+						    console.log(response);
+						    
+						    db.users.update({atc:  user.tokens.access_token},
+								    { $set: { "distance" : response.summary.distances[0].distance }});
+						    
 						}));
+	    
 	    
 	    
 	});
@@ -43,4 +50,33 @@ function updateDB(){
 
 updateDB();
 
+			    /*res.json({status: "Avatar Changed" });
+						}
+
+						    db.users.findOne(
+							{atc:  user.tokens.access_token},
+							function(err, user){
+							    
+							    // Server error
+							    if(err){
+								console.log( "Server error" );
+								res.status(500).json({error: "Server error."}) ;	    
+							    }
+							    
+							    // User does not exist
+							    if(!user){
+								console.log( "User already in the database." );
+								res.status(403).json({error: "User already in the database."}) ;
+								
+								// Insert new user 
+							    } else {
+	
+
+						    
+
+
+						    
+							    
+						    */
+			
 //process.exit(1);

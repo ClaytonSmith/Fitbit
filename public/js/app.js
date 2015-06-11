@@ -10,7 +10,7 @@ var app = angular.module('myApp', [
     'myApp.services',
     'myApp.directives',
     'leaflet-directive',
-    'nvd3ChartDirectives',
+    'chart.js',
     'isteven-omni-bar',
     'myModal'
 ]);

@@ -27,9 +27,9 @@ exports.info = function(req, res, next){
     console.log('Info is being requested.');
 
     req.db.users.find().toArray( function(err, item){  
-	res.json(item);	    
+        res.json(item);
     });
-};
+}
 
 exports.addUser = function(req, res, next){      
     console.log('User is being added.');

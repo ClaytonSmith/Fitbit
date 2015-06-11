@@ -16,6 +16,39 @@ function isEmptyObject(obj){
 function include(arr,obj) {
     return (arr.indexOf(obj) != -1);
 }
+
+
+// Floors time to the preveous quarter hour
+function floorTimeToQuarter(time){
+    time.setMilliseconds(Math.floor(time.getMilliseconds() / 1000) * 1000);
+    time.setSeconds(Math.floor(time.getSeconds() / 60) * 60);
+    time.setMinutes(Math.floor(time.getMinutes() / 15) * 15);
+    return time;
+}
+
+// Uses time to find the index  
+function calcLastUpdateIndex() {
+    var time = new Date();
+    time = floorTimeToQuarter(time);
+    return  parseInt(time.getHours() * 60 + time.getMinutes()) / 15; // int
+}
+
+function getTimeFromIndex(index) {   
+    var time = new Date(0);
+    time.setHours(0,0,0,0); // Set to midnigt of this morning
+    time.setMinutes(time.getMinutes() + (index  * 15));
+    return time;  // Date obj
+}
+
+function getTimeStampFromTime(time){
+    return time.getHours() + ':' + time.getMinutes();  // Str
+}
+
+function getTimeStamp(){
+    return getTimeStampFromTime(getTimeFromIndex(calcLastUpdateIndex()));
+}
+
+/******** CONTROLLERS ********/
 function appCtrl($scope, $http, $location, $rootScope) {
     console.log('Hello from app controller.');
 }
@@ -24,7 +57,8 @@ function appCtrl($scope, $http, $location, $rootScope) {
 /* Controllers */
 function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     console.log("Hello from map controller.");
-    
+
+    var cloudLockLogo = "https://pbs.twimg.com/profile_images/517321674471923712/bFqGdWJL_400x400.jpeg";
     var startDest = {lat: 42.3699388, lng: -71.2458321}; // CloudLock HQ
     var endDest   = {lat: 45.5168567, lng: -122.6725146}; // Salesforce HQ
 
@@ -40,7 +74,11 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     }
 
     var totalDistance = 0;
-    $scope.exampleData = [];
+    $scope.graphLabels  = [];
+    $scope.graphLabels  =  Array.apply(null, {length: (1440 / 15)}).map(Number.call, function(index){ return  getTimeStampFromTime(getTimeFromIndex(index)); });
+    $scope.graphDataSet = [];
+    
+    $scope.exampleData = []; //NN
     $scope.paths       = {};
     $scope.markers     = {};
     $scope.center      = {
@@ -52,68 +90,74 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
         scrollWheelZoom: false
     };
     
-    var usersDistance = [
-	{name: 'Tom',      distance: 100.2, avatar: "https://pbs.twimg.com/profile_images/517321674471923712/bFqGdWJL_400x400.jpeg"},
-	{name: 'Jan',      distance: 200.3, avatar: "http://zohararad.github.io/presentations/falling-in-love-with-ruby/presentation/images/ruby.png"},
-	{name: 'Mike',     distance: 500.1, avatar: "https://flyingonemptythoughts.files.wordpress.com/2013/06/neutral-its-something-l.png"},
-	{name: 'Jane',     distance: 400.5, avatar: "http://img3.wikia.nocookie.net/__cb20120826123355/vssaxtonhale/images/c/c2/Troll-face.png"},
-	{name: 'Bobbert',  distance: 400.3, avatar: "http://images4.fanpop.com/image/photos/19700000/Horton-hears-a-who-pics-horton-hears-a-who-19717311-1109-529.jpg"},
-	{name: 'Sarah',    distance: 100.3, avatar: "https://pbs.twimg.com/profile_images/447460759329460224/mt2UmwGG_400x400.jpeg"},
-	{name: 'Tedison',  distance: 300.2, avatar: "https://www.petfinder.com/wp-content/uploads/2012/11/122163343-conditioning-dog-loud-noises-632x475.jpg"} 
+    $scope.userData = [
+	/*({displayName: 'Tom',      distance: 1002.2, avatar: "https://pbs.twimg.com/profile_images/517321674471923712/bFqGdWJL_400x400.jpeg"},
+	{displayName: 'Jan',      distance: 203.3, avatar: "http://zohararad.github.io/presentations/falling-in-love-with-ruby/presentation/images/ruby.png"},
+	{displayName: 'Mike',     distance: 504.1, avatar: "https://flyingonemptythoughts.files.wordpress.com/2013/06/neutral-its-something-l.png"},
+	{displayName: 'Jane',     distance: 405.5, avatar: "http://img3.wikia.nocookie.net/__cb20120826123355/vssaxtonhale/images/c/c2/Troll-face.png"},
+	{displayName: 'Bobbert',  distance: 406.3, avatar: "http://images4.fanpop.com/image/photos/19700000/Horton-hears-a-who-pics-horton-hears-a-who-19717311-1109-529.jpg"},
+	{displayName: 'Sarah',    distance: 107.3, avatar: "https://pbs.twimg.com/profile_images/447460759329460224/mt2UmwGG_400x400.jpeg"},
+	{displayName: 'Tedison',  distance: 308.2, avatar: "https://www.petfinder.com/wp-content/uploads/2012/11/122163343-conditioning-dog-loud-noises-632x475.jpg"} */
     ];
-    
-    
-    //$http.get('http://localhost:/distance')
-    //  .success(function(data, status, headers, config) {
-    //    console.log( data );
-    $scope.gotStuff = true;
-    
-    //  data.forEach(function(obj){ usersDistance.push(obj); });
-    usersDistance = $filter('orderBy')(usersDistance, '-distance', 'reverse');
-    console.log("Real Fitbit users added to user list.");
-    
-    usersDistance.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
-    totalDistance = usersDistance.reduce(function(a,b){ console.log(a) ; return a + b.distance  ; }, 0) * 1.60934 ;
-    console.log("Users assigned color", usersDistance);
-    
+  
+    function updateGraph(){
 
-    usersDistance = calcPaths(usersDistance);
-    createPaths(usersDistance);
-    console.log("Paths added");
+    }
     
+    function update(){
+        $http.get('http://localhost:3000/api/info')
+	    .success(function(data, status, headers, config) {
+	        console.log( data, status, headers, config, "Hello" );
+                
+                //$scope.gotStuff = true;
+		console.log(data, 'look here');
+		//data.forEach(function(obj){ $scope.userData.push(obj); });
 
+                $scope.userData = $filter('orderBy')(data, '-distance');
+                console.log(data);
+		console.log("Fitbit users added to dataset.", $scope.userData);
+		
+		$scope.userData.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
+		totalDistance = $scope.userData.reduce(function(a,b){ console.log(a) ; return a + b.distance  ; }, 0) * 1.60934 ;
+		console.log("Users assigned color", $scope.userData);
+		
+		$scope.userData = calcPaths($scope.userData);
+		createPaths($scope.userData);
+		console.log("Paths added");
+		
+		var calculatedDist = getDistanceFromLatLonInM($scope.userData[$scope.userData.length - 1].path.start.lat,
+                                                              $scope.userData[$scope.userData.length - 1].path.end.lng,
+                                                              startDest.lat, startDest.lng);
+		
+		console.log('DISTACNE', totalDistance, calculatedDist);
+		
+		$scope.percentageValue = calculatedDist / getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
+		
+		var centerCoords   =  getMidpoint($scope.userData[$scope.userData.length - 1].path.start, $scope.userData[0].path.end);
+		$scope.center.lat  =  centerCoords.lat;
+		$scope.center.lng  =  centerCoords.lng;
+                
+		$scope.graphSeries  = $scope.userData.map(function(obj){return obj.displayName; });
+                $scope.graphDataSet = $scope.userData.map(function(obj){return obj.distances.map(function(dist){return dist.distance ;}); });
+                
+                console.log($scope.graphDataSet);
+                
+            }).error(function(data){
+                console.log('Unable to get data', data); // Cry
+	    });
+    }
     
-    var calculatedDist = getDistanceFromLatLonInM(usersDistance[usersDistance.length - 1].path.start.lat, usersDistance[usersDistance.length - 1].path.end.lng, startDest.lat, startDest.lng);
+    $scope.$watch( 'userData', function(){
+    });        
     
-    console.log('DISTACNE', totalDistance, calculatedDist);
-
+    var minutes = 7.5, the_interval = minutes * 60 * 1000;
     
-    $scope.percentageValue = calculatedDist / getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
-
-    var centerCoords   =  getMidpoint(usersDistance[usersDistance.length - 1].path.start, usersDistance[0].path.end);
-    $scope.center.lat  =  centerCoords.lat;
-    $scope.center.lng  =  centerCoords.lng;
-    $scope.center.zoom = 11 ;
-    
-    $scope.colorFunction = function() {   
-	return function(d, i) {
-	    return userDistance[i].color;
-	};
-   };
-    
-    // Map user distance to D3 compliant data object.
-    $scope.exampleData =
-	($filter('orderBy')(usersDistance, '-distance')).map(function(obj){
-	    return   {
-		key: obj.name,
-		values: [[obj.name, obj.distance]],
-		color: obj.color
-	    };
-	});
-    //}).error(function(data){
-    // Cry
-    //}); 
-    
+    // init update 
+    update();
+    setInterval(function() {
+	update(); // keep client updated 
+        console.log('Updated user');
+    }, the_interval);
     
     function radians(deg){
 	return deg * (Math.PI / 180);
@@ -238,7 +282,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
 		title:   user.name,
 		message: user.name,
 		icon: {
-		    iconUrl: user.avatar,
+		    iconUrl: user.avatar || cloudLockLogo,
 		    iconSize:     [40, 40],
 		    iconAnchor:   [20, 40],
 		    popupAnchor:  [3, -32],
