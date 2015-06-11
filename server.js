@@ -27,7 +27,7 @@ function updateDB(){
 //	    console.log( user );
 
 	     
-	    console.log( client.requestResource("/profile.json", "GET",
+	    console.log( client.requestResource("/.json", "GET",
 						user.keys.oauth_token,	  
 						user.keys.oauth_verifier).then(function (results) {
 						    

@@ -61,6 +61,7 @@ app.get("/authorize", function (req, res) {
 	var token = results[0],
 	    secret = results[1];
 	requestTokenSecrets[token] = secret;
+	console.log(requestTokenSecrets, token);
 	console.log(token);
 	res.redirect("http://www.fitbit.com/oauth/authorize?oauth_token=" + token);
     }, function (error) {
@@ -73,7 +74,9 @@ app.get("/thankyou", function (req, res) {
 
     var token = req.query.oauth_token,
 	secret = requestTokenSecrets[token],
+
 	verifier = req.query.oauth_verifier;
+    console.log(requestTokenSecrets, token);
     client.getAccessToken(token, secret, verifier).then(function (results) {
 	var accessToken = results[0],
 	    accessTokenSecret = results[1],
@@ -177,14 +180,14 @@ setInterval(function() {
 	result.each(function(err, user) {
 	    if( !user ) return ;
 	    
-	    console.log( client.requestResource("/activities/distance.json", "GET",
+/*	    console.log( client.requestResource("/activities/distance.json", "GET",
 						user.tokens.access_token,	  
 						user.tokens.access_token_secret).then(function (results) {
 						    
 						    var response = results[0];
 						    
 						    console.log(response);	    
-						}));
+						}));*/
 	    
 	    
 	});
@@ -194,22 +197,23 @@ setInterval(function() {
     // do your stuff here
 }, the_interval);
 
+/*
+db.keys.find({}, function(err, result) {
+    result.each(function(err, user) {
+	if( !user ) return ;
+	
+	console.log( client.requestResource("/activities/date/2015-6-1.json", "GET",
+					    user.tokens.access_token,	  
+					    user.tokens.access_token_secret).then(function (results) {
 
-    db.keys.find({}, function(err, result) {
-	result.each(function(err, user) {
-	    if( !user ) return ;
-	    
-	    console.log( client.requestResource("/activities/date/2015-6-1.json", "GET",
-						user.tokens.access_token,	  
-						user.tokens.access_token_secret).then(function (results) {
 
-
-						    
-						    var response = results[0];
-						    
-						    console.log(response);	    
-						}));
-	    
-	    
-	});
+						
+						var response = results[0];
+						
+						console.log(response);	    
+					    }));
+	
+	
     });
+});
+*/
