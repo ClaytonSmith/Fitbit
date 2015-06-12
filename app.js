@@ -226,20 +226,6 @@ app.get('*', function(req, res) {
 
 redirect.get('*', function(req, res) {
     console.log('*', req.url);
-    if( req.url == '/authorize'){
-        client.getRequestToken().then(function (results) {
-	    console.log('Getting token and redirect');
-	    
-	    var token  = results[0],
-	        secret = results[1];
-	    requestTokenSecrets[token] = secret;
-	    console.log(token);
-	    res.redirect("http://www.fitbit.com/oauth/authorize?oauth_token=" + token);
-        }, function (error) {
-	    res.send(error);
-        });
-    }
-    
     res.writeHead(302, {'Location': 'http://localhost:3000' + req.url});
     res.end();
 });
@@ -263,7 +249,7 @@ http.createServer(redirect).listen(redirect.get('port'), function () {
 
 // Update DB every X minutes
 
-function update() {
+function updateDB() {
     var today = new Date();
 
     // Get index into activity array 
@@ -315,5 +301,5 @@ function update() {
     });
 }
 
-update();
-setInterval( update(), the_interval);
+//updateDB();
+setInterval( updateDB, the_interval);

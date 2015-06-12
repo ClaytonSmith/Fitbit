@@ -83,7 +83,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     $scope.center       = {
         lat: 37.5960374,
         lng: -97.0452066,
-	zoom: 4
+	zoom: 10
     };
     
     $scope.defaults      = {
