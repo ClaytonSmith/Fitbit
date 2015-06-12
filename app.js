@@ -10,7 +10,11 @@ var express               = require('express'),
     path                  = require('path'),
     OAuth                 = require('oauth-1.0a');
 
-var config                = require('./config.json');
+var config                = {
+    "FITBIT_KEY":     "075f8855a5a67c2603fc2109d978746e",
+    "FITBIT_SECRET":  "13cbe3e4a8bb8c9051a305fede2f4fbb",
+    "mongo_link":     "mongodb://admin:cloudlock11@ds034878.mongolab.com:34878/fitbit-cloudlock"      
+}; //require('./config.json');
 
 // update interval
 var frequency = 15, the_interval = frequency * 60 * 1000;
