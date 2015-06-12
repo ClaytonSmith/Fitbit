@@ -1,7 +1,7 @@
 // Clayton Smith
 
 // Dont want API keys floating around on the internet
-var config                = require('./config.json');
+
 
 var express               = require('express'),
     routes                = require('./routes'),
@@ -9,6 +9,8 @@ var express               = require('express'),
     http                  = require('http'),
     path                  = require('path'),
     OAuth                 = require('oauth-1.0a');
+
+var config                = require('./config.json');
 
 // update interval
 var frequency = 15, the_interval = frequency * 60 * 1000;
