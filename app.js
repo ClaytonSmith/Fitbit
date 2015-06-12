@@ -163,7 +163,24 @@ app.get("/thankyou", function (req, res) {
                                                                    };
                                                                })
 					                   }, {w: 0});	
-					               }));
+
+
+                                                           client.requestResource("/activities/date/"+ date +".json", "GET",
+			                                                          access_token,	  
+			                                                          access_token_secret).then(function (results) {
+			                                                              var quere = {};
+                                                                                      var key = 'distances.' + currentIndex + '.distance';
+                                                                                      quere[key] = JSON.parse(results[0]).summary.distances[0].distance;
+                                                                                      quere['distance'] = quere[key];
+				                                                      db.users.update(
+                                                                                          {atc:  user.tokens.access_token },
+				                                                          {$set: quere,  },
+                                                                                          {multi: true},
+                                                                                          function(err, obj){
+                                                                                          });				   
+			                                                          });        
+                                                           
+                                                       }));
 		}
 	    });
 	
@@ -203,19 +220,6 @@ app.get('/', function(req, res) {
 
 app.get('*', function(req, res) {
     console.log('*', req.url);
-    if( req.url == '/authorize'){
-        client.getRequestToken().then(function (results) {
-	    console.log('Getting token and redirect');
-	    
-	    var token  = results[0],
-	        secret = results[1];
-	    requestTokenSecrets[token] = secret;
-	    console.log(token);
-	        res.redirect("http://www.fitbit.com/oauth/authorize?oauth_token=" + token);
-        }, function (error) {
-	    res.send(error);
-        });
-    }
     routes.index(req, res);
     res.end();
 });
@@ -259,7 +263,7 @@ http.createServer(redirect).listen(redirect.get('port'), function () {
 
 // Update DB every X minutes
 
-setInterval(function() {
+function update() {
     var today = new Date();
 
     // Get index into activity array 
@@ -291,7 +295,6 @@ setInterval(function() {
         );	
     }
     
-    
     db.keys.find({}).each(function(err, user) {
         console.log('Doing something for'+ user);
         if( !user ) return ;
@@ -309,5 +312,8 @@ setInterval(function() {
                                        function(err, obj){
                                        });				   
 			       });        
-    });    
-}, the_interval);
+    });
+}
+
+update();
+setInterval( update(), the_interval);
