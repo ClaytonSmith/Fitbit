@@ -76,36 +76,32 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     var totalDistance = 0;
     $scope.graphLabels  = [];
     $scope.graphLabels  =  Array.apply(null, {length: (1440 / 15)}).map(Number.call, function(index){ return  getTimeStampFromTime(getTimeFromIndex(index)); });
-    $scope.graphDataSet = [];
-    
-    $scope.exampleData = []; //NN
-    $scope.paths       = {};
-    $scope.markers     = {};
-    $scope.center      = {
+    $scope.graphDataSet = [];    
+    $scope.exampleData  = []; //NN
+    $scope.paths        = {};
+    $scope.markers      = {};
+    $scope.center       = {
         lat: 37.5960374,
         lng: -97.0452066,
 	zoom: 4
     };
-    $scope.defaults    = {
+    
+    $scope.defaults      = {
         scrollWheelZoom: false
     };
-    
+         
     $scope.userData = [
 	/*({displayName: 'Tom',      distance: 1002.2, avatar: "https://pbs.twimg.com/profile_images/517321674471923712/bFqGdWJL_400x400.jpeg"},
-	{displayName: 'Jan',      distance: 203.3, avatar: "http://zohararad.github.io/presentations/falling-in-love-with-ruby/presentation/images/ruby.png"},
-	{displayName: 'Mike',     distance: 504.1, avatar: "https://flyingonemptythoughts.files.wordpress.com/2013/06/neutral-its-something-l.png"},
-	{displayName: 'Jane',     distance: 405.5, avatar: "http://img3.wikia.nocookie.net/__cb20120826123355/vssaxtonhale/images/c/c2/Troll-face.png"},
-	{displayName: 'Bobbert',  distance: 406.3, avatar: "http://images4.fanpop.com/image/photos/19700000/Horton-hears-a-who-pics-horton-hears-a-who-19717311-1109-529.jpg"},
-	{displayName: 'Sarah',    distance: 107.3, avatar: "https://pbs.twimg.com/profile_images/447460759329460224/mt2UmwGG_400x400.jpeg"},
-	{displayName: 'Tedison',  distance: 308.2, avatar: "https://www.petfinder.com/wp-content/uploads/2012/11/122163343-conditioning-dog-loud-noises-632x475.jpg"} */
+	  {displayName: 'Jan',      distance: 203.3, avatar: "http://zohararad.github.io/presentations/falling-in-love-with-ruby/presentation/images/ruby.png"},
+	  {displayName: 'Mike',     distance: 504.1, avatar: "https://flyingonemptythoughts.files.wordpress.com/2013/06/neutral-its-something-l.png"},
+	  {displayName: 'Jane',     distance: 405.5, avatar: "http://img3.wikia.nocookie.net/__cb20120826123355/vssaxtonhale/images/c/c2/Troll-face.png"},
+	  {displayName: 'Bobbert',  distance: 406.3, avatar: "http://images4.fanpop.com/image/photos/19700000/Horton-hears-a-who-pics-horton-hears-a-who-19717311-1109-529.jpg"},
+	  {displayName: 'Sarah',    distance: 107.3, avatar: "https://pbs.twimg.com/profile_images/447460759329460224/mt2UmwGG_400x400.jpeg"},
+	  {displayName: 'Tedison',  distance: 308.2, avatar: "https://www.petfinder.com/wp-content/uploads/2012/11/122163343-conditioning-dog-loud-noises-632x475.jpg"} */
     ];
-  
-    function updateGraph(){
-
-    }
     
     function update(){
-        $http.get('http://localhost:3000/api/info')
+        $http.get('api/info')
 	    .success(function(data, status, headers, config) {
 	        console.log( data, status, headers, config, "Hello" );
                 
@@ -154,8 +150,9 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     
     // init update 
     update();
+
     setInterval(function() {
-	update(); // keep client updated 
+	update(); 
         console.log('Updated user');
     }, the_interval);
     

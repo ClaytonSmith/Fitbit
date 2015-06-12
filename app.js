@@ -200,7 +200,7 @@ app.get('*', function(req, res) {
 });
 
 redirect.get('*', function(req, res) {
-    console.log('*', req.url );
+    console.log('*', req.url);
     res.writeHead(302, {'Location': 'http://localhost:3000' + req.url});
     res.end();
 });

@@ -1,3 +1,7 @@
+
+html, body{
+    width: 100%;
+}
 .navbar {
     background: #29323d;
     height: 50px;
@@ -17,11 +21,3 @@
     vertical-align: super;
 }
 
-.chart {
-    width: 100%;
-
-}
-
-.graph-area{
-    height: 20%;
-}
