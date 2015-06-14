@@ -104,6 +104,8 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
         $http.get('api/info')
 	    .success(function(data, status, headers, config) {
 	        console.log( data, status, headers, config, "Hello" );
+                $scope.paths        = {};
+                $scope.markers      = {};
                 
                 //$scope.gotStuff = true;
 		console.log(data, 'look here');
