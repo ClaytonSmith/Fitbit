@@ -59,8 +59,8 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     console.log("Hello from map controller.");
 
     var cloudLockLogo = "https://pbs.twimg.com/profile_images/517321674471923712/bFqGdWJL_400x400.jpeg";
-    var startDest = {lat: 42.3699388, lng: -71.2458321}; // CloudLock HQ
-    var endDest   = {lat: 45.5168567, lng: -122.6725146}; // Salesforce HQ
+    var startDest = {lat: 42.3680275, lng: -71.2421328};  // CloudLock HQ
+    var endDest   = {lat: 37.7924224, lng: -122.3931885}; // Salesforce HQ
 
     $scope.gotStuff = false;
 
@@ -90,15 +90,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
         scrollWheelZoom: false
     };
          
-    $scope.userData = [
-	/*({displayName: 'Tom',      distance: 1002.2, avatar: "https://pbs.twimg.com/profile_images/517321674471923712/bFqGdWJL_400x400.jpeg"},
-	  {displayName: 'Jan',      distance: 203.3, avatar: "http://zohararad.github.io/presentations/falling-in-love-with-ruby/presentation/images/ruby.png"},
-	  {displayName: 'Mike',     distance: 504.1, avatar: "https://flyingonemptythoughts.files.wordpress.com/2013/06/neutral-its-something-l.png"},
-	  {displayName: 'Jane',     distance: 405.5, avatar: "http://img3.wikia.nocookie.net/__cb20120826123355/vssaxtonhale/images/c/c2/Troll-face.png"},
-	  {displayName: 'Bobbert',  distance: 406.3, avatar: "http://images4.fanpop.com/image/photos/19700000/Horton-hears-a-who-pics-horton-hears-a-who-19717311-1109-529.jpg"},
-	  {displayName: 'Sarah',    distance: 107.3, avatar: "https://pbs.twimg.com/profile_images/447460759329460224/mt2UmwGG_400x400.jpeg"},
-	  {displayName: 'Tedison',  distance: 308.2, avatar: "https://www.petfinder.com/wp-content/uploads/2012/11/122163343-conditioning-dog-loud-noises-632x475.jpg"} */
-    ];
+    $scope.userData = [];
     
     function update(){
         $http.get('api/info')
@@ -107,12 +99,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
                 $scope.paths        = {};
                 $scope.markers      = {};
                 
-                //$scope.gotStuff = true;
-		console.log(data, 'look here');
-		//data.forEach(function(obj){ $scope.userData.push(obj); });
-
-                $scope.userData = $filter('orderBy')(data, '-distance');
-                console.log(data);
+		$scope.userData = $filter('orderBy')(data, '-distance');
 		console.log("Fitbit users added to dataset.", $scope.userData);
 		
 		$scope.userData.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });

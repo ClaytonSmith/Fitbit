@@ -21,3 +21,15 @@ html, body{
     vertical-align: super;
 }
 
+
+.currentValue, maxValue, containerBar, myStyleclass,  ng-isolate-scope{
+    border-radius: 0;
+}
+
+#omnibar{
+   border-radius: 0;
+}
+
+.maxValue {
+    border-radius: 0;
+}

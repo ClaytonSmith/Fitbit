@@ -2,7 +2,6 @@
 
 // Dont want API keys floating around on the internet
 
-
 var express               = require('express'),
     routes                = require('./routes'),
     api                   = require('./routes/api'),
@@ -301,5 +300,5 @@ function updateDB() {
     });
 }
 
-//updateDB();
+updateDB();
 setInterval( updateDB, the_interval);

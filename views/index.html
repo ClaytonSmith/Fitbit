@@ -6,13 +6,12 @@
     <title>Fitbit app</title>
 
     <!--|    CSS     |-->
-    
+    <link rel="stylesheet" href="bower_components/pure/pure.css">
     <link rel="stylesheet" href="bower_components/leaflet/dist/leaflet.css">
     <link rel="stylesheet" href="bower_components/angular-chart.js/dist/angular-chart.css">
     <link rel="stylesheet" href="bower_components/angular-omni-bar/isteven-omni-bar.css">
-    <link rel="stylesheet" href="bower_components/pure/pure.css">
     <link rel="stylesheet" href="css/animation.css">
-    <link rel="stylesheet" href="css/app.css">
+
     
     <!--| JavaScript |-->
     <script type="text/javascript" src="bower_components/jquery/dist/jquery.min.js"></script>
@@ -34,9 +33,11 @@
     <script type="text/javascript" src="js/controllers.js"></script>
     <script type="text/javascript" src="js/filters.js"></script>
     <script type="text/javascript" src="js/directives.js"></script>
+
+    <link rel="stylesheet" href="css/app.css">
   </head>
   
-  <body ng-controller="appCtrl">
-    <div class="container" id="title" ng-view></div>
+  <body ng-controller="appCtrl" class="content-wrapper">
+    <div class="container content" ng-view></div>
   </body>
 </html>
