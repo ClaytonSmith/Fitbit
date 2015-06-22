@@ -300,5 +300,5 @@ function updateDB() {
     });
 }
 
-updateDB();
-setInterval( updateDB, the_interval);
+//updateDB();
+//setInterval( updateDB, the_interval);

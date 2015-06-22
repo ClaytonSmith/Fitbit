@@ -78,6 +78,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     $scope.graphLabels  =  Array.apply(null, {length: (1440 / 15)}).map(Number.call, function(index){ return  getTimeStampFromTime(getTimeFromIndex(index)); });
     $scope.graphDataSet = [];    
     $scope.exampleData  = []; //NN
+    $scope.colours      = [];
     $scope.paths        = {};
     $scope.markers      = {};
     $scope.center       = {
@@ -124,6 +125,16 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
                 
 		$scope.graphSeries  = $scope.userData.map(function(obj){return obj.displayName; });
                 $scope.graphDataSet = $scope.userData.map(function(obj){return obj.distances.map(function(dist){return dist.distance ;}); });
+       
+                $scope.colours      = $scope.userData.map(function(obj){
+                    return {
+                        fillColor: obj.color,
+                        strokeColor: obj.color,
+                        highlightFill: 'rgba(47, 132, 71, 0.8)',
+                        highlightStroke: 'rgba(47, 132, 71, 0.8)'
+                    }
+                });
+
                 
                 console.log($scope.graphDataSet);
                 
