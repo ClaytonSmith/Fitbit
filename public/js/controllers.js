@@ -135,15 +135,17 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     $scope.$watch( 'userData', function(){
     });        
     
-    var minutes = 7.5, the_interval = minutes * 60 * 1000;
+    //var minutes = 7.5, the_interval = minutes * 60 * 1000;
     
     // init update 
     update();
-
-    setInterval(function() {
-	update(); 
-        console.log('Updated user');
-    }, the_interval);
+    
+    // Listen for server update
+    var socket = io('http://clayton-smith.com:3000');
+    socket.on('db_update', function (data) {
+	console.log(data.message);
+	update();
+    });
     
     function radians(deg){
 	return deg * (Math.PI / 180);

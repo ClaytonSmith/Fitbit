@@ -7,21 +7,19 @@ var express               = require('express'),
     api                   = require('./routes/api'),
     http                  = require('http'),
     path                  = require('path'),
-    OAuth                 = require('oauth-1.0a');
+    OAuth                 = require('oauth-1.0a'),
+    http                  = require('http'),
+    async                 = require('async');
 
-var config                = {
-    "FITBIT_KEY":     "075f8855a5a67c2603fc2109d978746e",
-    "FITBIT_SECRET":  "13cbe3e4a8bb8c9051a305fede2f4fbb",
-    "mongo_link":     "mongodb://admin:cloudlock11@ds034878.mongolab.com:34878/fitbit-cloudlock"      
-}; //require('./config.json');
-
-// update interval
-var frequency = 15, the_interval = frequency * 60 * 1000;
+var config                = require('./config.json');
 
 var FitbitApiClient       = require("fitbit-node"),
     client                = new FitbitApiClient(config.FITBIT_KEY, config.FITBIT_SECRET);
 
 var requestTokenSecrets   = {};
+
+// update interval
+var frequency = 15, the_interval = frequency * 60 * 1000;
 
 //var client = new FitbitApiClient(config.FITGIT_KEY, config.FITGIT_SECRET );
 var app                   = module.exports = express();
@@ -37,7 +35,7 @@ db.bind('users');
 app.use(function(req, res, next) {
     req.db = db;
     next();
-})
+});
 
 /* EXPRESS SETUP */
 app.set('port', process.env.PORT || 3000);
@@ -108,15 +106,12 @@ app.get("/thankyou", function (req, res) {
 	secret   = requestTokenSecrets[token],
         verifier = req.query.oauth_verifier;
 
-    console.log('Got the token', requestTokenSecrets, token);
     client.getAccessToken(token, secret, verifier).then(function (results) {
 	var accessToken = results[0],
 	    accessTokenSecret = results[1],
 	    userId = results[2].encoded_user_id;
-	console.log( accessToken, accessTokenSecret);
 	
 	routes.index(req, res);
-
         
 	db.keys.findOne(
 	    {atc:  accessToken},
@@ -124,7 +119,7 @@ app.get("/thankyou", function (req, res) {
 		// Server error
 		if(err){
 		    console.log( "Server error" );
-		    res.status(500).json({error: "Server error."}) ;	    
+		    res.status(500).json({error: "Server error."}) ;	     
 		}
 		
 		// User already added
@@ -142,8 +137,6 @@ app.get("/thankyou", function (req, res) {
 			    access_token_secret: accessTokenSecret
 			}}, {w: 0});	
 		    
-                    console.log('Cool beans!');
-                    
 		    console.log(client.requestResource("/profile.json", "GET",
 					               accessToken,	  
 					               accessTokenSecret).then(function (results) {
@@ -154,7 +147,7 @@ app.get("/thankyou", function (req, res) {
 						               "atc":  accessToken,
 						               "displayName": response.user.displayName,
 						               "avatar": response.user.avatar,
-						               "distance": .001,
+						               "distance": 0,
                                                                "distances": Array.apply(null, {length: (1440 / frequency)}).map(Number.call, function(index){        
                                                                    return {
                                                                        "time": getTimeStampFromTime(getTimeFromIndex(index)),
@@ -163,32 +156,31 @@ app.get("/thankyou", function (req, res) {
                                                                })
 					                   }, {w: 0});	
 
-
                                                            client.requestResource("/activities/date/"+ date +".json", "GET",
 			                                                          access_token,	  
 			                                                          access_token_secret).then(function (results) {
-			                                                              var quere = {};
+			                                                              var query = {};
                                                                                       var key = 'distances.' + currentIndex + '.distance';
-                                                                                      quere[key] = JSON.parse(results[0]).summary.distances[0].distance;
-                                                                                      quere['distance'] = quere[key];
+                                                                                      query[key] = JSON.parse(results[0]).summary.distances[0].distance;
+                                                                                      query['distance'] = query[key];
 				                                                      db.users.update(
                                                                                           {atc:  user.tokens.access_token },
-				                                                          {$set: quere,  },
+				                                                          {$set: query},
                                                                                           {multi: true},
                                                                                           function(err, obj){
                                                                                           });				   
-			                                                          });        
-                                                           
+			                                                              
+										      // Tell client to get new data
+										      io.emit('db_update', {message: 'A new user has been added. Please update yourself.'});
+										  });
                                                        }));
 		}
 	    });
-	
 	routes.index(req, res);
     }, function (error) {
 	res.send(error);
     });
 });
-
 
 // development only
 if (app.get('env') === 'development') {
@@ -207,7 +199,6 @@ app.get('/partials/:name', routes.partial );
 app.get('/api/info',               api.info);
 app.get('/api/req_update',         api.update);
 app.post('/api/add_user',          api.addUser);
-
 
 // redirect all others to the index (HTML5 history)
 // 404 page collector
@@ -230,12 +221,12 @@ redirect.get('*', function(req, res) {
 });
 
 // Start Server
-http.createServer(app).listen(app.get('port'), function () {
-    console.log('Express server listening on port ' + app.get('port'));
-    console.log( "Current update time:  ",  getTimeStamp());
-    console.log( "Current update index: ",  calcLastUpdateIndex());
-    
-});
+var io = require('socket.io').listen(
+    http.createServer(app).listen(app.get('port'), function () {
+	console.log('Express server listening on port ' + app.get('port'));
+	console.log( "Current update time:  ",  getTimeStamp());
+	console.log( "Current update index: ",  calcLastUpdateIndex());
+    }));
 
 // Fitbit callback puts users on port 6544. Listen on port 6544 and redirect users to port 3000
 // so they may make API calls.
@@ -243,30 +234,71 @@ http.createServer(redirect).listen(redirect.get('port'), function () {
     console.log('Express server listening on port ' + redirect.get('port'));
 });
 
+// Socket setup
 
 /******* BACKGROUND STUFF *******/
 
 // Update DB every X minutes
 
+var updateChain = []
+
+function getFitbitData( user, done){
+     if( !user ) {
+	 console.log('Im out');
+	 //done();
+	 return ;
+     }
+    
+     var today = new Date();
+
+    // Date string. Find better way.
+    date = 'Y-m-d'
+	.replace('Y', today.getFullYear())
+	.replace('m', today.getMonth()+1)
+	.replace('d', today.getDate());
+    
+    var currentIndex  = calcLastUpdateIndex(); 
+   
+    client.requestResource("/activities/date/"+ date +".json", "GET", 
+			   user.tokens.access_token,
+			   user.tokens.access_token_secret
+			  ).then(function (results) {
+			      var query = {};
+			      var key = 'distances.' + currentIndex + '.distance';
+			      
+			      query[key] = JSON.parse(results[0]).summary.distances[0].distance;
+			      query['distance'] = query[key];
+			      
+			      db.users.update(
+                                  {atc:  user.tokens.access_token },
+				  {$set: query},
+                                  {multi: true},
+                                  function(err, obj){    
+				      console.log('updated');
+				      hackyThing -= 1;
+				      console.log(hackyThing);
+				      if( hackyThing === 1 ){
+					  console.log('*********************** DB updated.');
+					  io.emit('db_update', {message: 'New data from Fitbit. Please update yourself.'});
+					  done();
+				      }
+				  });
+			  });   
+}
+
+var hackyThing = 0;
 function updateDB() {
-    var today = new Date();
 
     // Get index into activity array 
     var currentIndex  = calcLastUpdateIndex(); 
 
-    // Date string. Find better way.
-    date = 'Y-m-d'
-        .replace('Y', today.getFullYear())
-        .replace('m', today.getMonth()+1)
-        .replace('d', today.getDate());
-    
-    console.log("I am doing my "+ frequency +" minutes check");
+    console.log("I am doing my "+ frequency +" minute check");
     
     if( currentIndex == 0 ){
         
         db.users.update(
             {},
-	    { $set: {"distance": 0,
+	    { $set: {"distance": 0,  
                      "distances": Array.apply(null, {length: (1440 / frequency)}).map(Number.call, function(index){        
                          return {
                              "time": getTimeStampFromTime(getTimeFromIndex(index)),
@@ -275,30 +307,21 @@ function updateDB() {
                      })
                     }},
             {multi: true},
-            function(err, obj){
-            }
-        );	
+            function(err, obj){ 
+            });	
     }
     
-    db.keys.find({}).each(function(err, user) {
-        console.log('Doing something for'+ user);
-        if( !user ) return ;
-	client.requestResource("/activities/date/"+ date +".json", "GET",
-			       user.tokens.access_token,	  
-			       user.tokens.access_token_secret).then(function (results) {
-			           var quere = {};
-                                   var key = 'distances.' + currentIndex + '.distance';
-                                   quere[key] = JSON.parse(results[0]).summary.distances[0].distance;
-                                   quere['distance'] = quere[key];
-				   db.users.update(
-                                       {atc:  user.tokens.access_token },
-				       {$set: quere,  },
-                                       {multi: true},
-                                       function(err, obj){
-                                       });				   
-			       });        
+    db.keys.find({}).toArray(function(err, result){
+	console.log( 'Builing reqest chain.' );
+	
+	hackyThing = result.length;
+	async.forEach(result, getFitbitData, function(err){
+	    console.log(err);
+	});
     });
-}
+}	
 
 updateDB();
 setInterval( updateDB, the_interval);
+
+
