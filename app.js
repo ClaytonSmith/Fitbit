@@ -31,6 +31,7 @@ var mongo                 = require('mongoskin'),
 
 db.bind('keys');
 db.bind('users');
+db.bind('info');
 
 app.use(function(req, res, next) {
     req.db = db;
@@ -63,11 +64,16 @@ function floorTimeToQuarter(time){
     return time;
 }
 
+function getIndexFromTime(time){
+    time = floorTimeToQuarter(time);
+    return  parseInt(time.getHours() * 60 + time.getMinutes()) / 15; // int
+}
+
+
 // Uses time to find the index  
 function calcLastUpdateIndex() {
     var time = new Date();
-    time = floorTimeToQuarter(time);
-    return  parseInt(time.getHours() * 60 + time.getMinutes()) / 15; // int
+    return getIndexFromTime(time);
 }
 
 function getTimeFromIndex(index) {   
@@ -148,13 +154,9 @@ app.get("/thankyou", function (req, res) {
 						               "displayName": response.user.displayName,
 						               "avatar": response.user.avatar,
 						               "distance": 0,
-                                                               "distances": Array.apply(null, {length: (1440 / frequency)}).map(Number.call, function(index){        
-                                                                   return {
-                                                                       "time": getTimeStampFromTime(getTimeFromIndex(index)),
-                                                                       "distance": 0
-                                                                   };
-                                                               })
-					                   }, {w: 0});	
+                                                               "distances": Array.apply(null, Array(calcLastUpdateIndex())).map(Number.prototype.valueOf,0)
+							   },                       
+						           {w: 0});	
 
                                                            client.requestResource("/activities/date/"+ date +".json", "GET",
 			                                                          access_token,	  
@@ -163,12 +165,23 @@ app.get("/thankyou", function (req, res) {
                                                                                       var key = 'distances.' + currentIndex + '.distance';
                                                                                       query[key] = JSON.parse(results[0]).summary.distances[0].distance;
                                                                                       query['distance'] = query[key];
-				                                                      db.users.update(
+				                                                      
+										      
+										      var distance = JSON.parse(results[0]).summary.distances[0].distance
+										      db.users.update(
+											  {atc:  user.tokens.access_token },
+											  {$push: {"distances": distance }},
+											  {$set:  {"distance":  distance}},
+											   {multi: true},
+                                                                                           function(err, obj){
+                                                                                          });
+											  /*db.users.update(
                                                                                           {atc:  user.tokens.access_token },
-				                                                          {$set: query},
+				                                                          {$set:  },
                                                                                           {multi: true},
-                                                                                          function(err, obj){
-                                                                                          });				   
+                                                                                           function(err, obj){
+                                                                                          });
+											  */
 			                                                              
 										      // Tell client to get new data
 										      io.emit('db_update', {message: 'A new user has been added. Please update yourself.'});
@@ -264,17 +277,23 @@ function getFitbitData( user, done){
 			   user.tokens.access_token_secret
 			  ).then(function (results) {
 			      var query = {};
-			      var key = 'distances.' + currentIndex + '.distance';
+			      //var key = 'distances.' + currentIndex + '.distance';
 			      
-			      query[key] = JSON.parse(results[0]).summary.distances[0].distance;
-			      query['distance'] = query[key];
+			      //query[key] = JSON.parse(results[0]).summary.distances[0].distance;
+			      //query['distance'] = query[key];
 			      
+			      var distance = JSON.parse(results[0]).summary.distances[0].distance
 			      db.users.update(
                                   {atc:  user.tokens.access_token },
-				  {$set: query},
-                                  {multi: true},
+				  {$push: {"distances": distance }},
+				  {multi: true},
                                   function(err, obj){    
-				      console.log('updated');
+				  });
+			      db.users.update(
+                                  {atc:  user.tokens.access_token },
+                                  {$set:  {"distance":  distance }},
+				  {multi: true},
+                                  function(err, obj){    
 				      hackyThing -= 1;
 				      console.log(hackyThing);
 				      if( hackyThing === 1 ){
@@ -288,40 +307,76 @@ function getFitbitData( user, done){
 
 var hackyThing = 0;
 function updateDB() {
-
-    // Get index into activity array 
-    var currentIndex  = calcLastUpdateIndex(); 
-
     console.log("I am doing my "+ frequency +" minute check");
-    
-    if( currentIndex == 0 ){
-        
-        db.users.update(
-            {},
-	    { $set: {"distance": 0,  
-                     "distances": Array.apply(null, {length: (1440 / frequency)}).map(Number.call, function(index){        
-                         return {
-                             "time": getTimeStampFromTime(getTimeFromIndex(index)),
-                             "distance": 0
-                         };
-                     })
-                    }},
-            {multi: true},
-            function(err, obj){ 
-            });	
-    }
-    
-    db.keys.find({}).toArray(function(err, result){
-	console.log( 'Builing reqest chain.' );
-	
-	hackyThing = result.length;
-	async.forEach(result, getFitbitData, function(err){
-	    console.log(err);
+    db.info.findOne(
+	{ info: "lastUpdateTime",},
+	function(err, lastUpdate){
+	    console.log('looking for last update time'); 
+	    if(err){
+		condole.log('bad server error');
+	    }
+	    
+	    var currentUpdateTime = new Date();
+	    var lastUpdateTime    = 0;
+	   
+	    if(!lastUpdate){
+		console.log('Set first update time');
+		db.info.insert({
+		    info: "lastUpdateTime",
+		    "lastUpdateTime": currentUpdateTime
+		}, {w: 0});
+		
+		lastUpdateTime = currentUpdateTime;
+	    } else {
+		console.log( 'using last update time.', lastUpdate.lastUpdateTime);
+		lastUpdateTime = lastUpdate.lastUpdateTime;
+	    }
+	    
+	    // Dont update too often!
+	    if( getIndexFromTime(lastUpdateTime) == getIndexFromTime(currentUpdateTime)){ 
+		console.log('The database is updating.');
+		
+		if( calcLastUpdateIndex() !== 0 ){
+		    console.log( 'RESET');
+		    db.users.update(
+			{},
+			{ $set: {"distance": 0,  
+				 "distances": Array.apply(null, Array(calcLastUpdateIndex())).map(Number.prototype.valueOf,0)
+				}},
+			{multi: true},
+			function(err, obj){ 
+			});	
+		}
+		
+		db.keys.find({}).toArray(function(err, result){
+		    console.log( 'Builing reqest chain.' );
+		    hackyThing = result.length;
+		    async.forEach(result, getFitbitData, function(err){
+			console.log(err);
+		    });
+		});
+		
+		// update time
+		db.info.update(
+		    { "info": "lastUpdateTime",},
+		    { $set: { "lastUpdateTime": new Date()}},
+		    { multi: true},
+		    function(err, obj){ 
+			console.log(err, obj);
+		    });
+		
+	    } else {
+		console.log('No updates needed at this time');
+	    }
 	});
-    });
 }	
 
 updateDB();
 setInterval( updateDB, the_interval);
 
-
+/*
+Array.apply(null, {length: (1440 / frequency)}).map(Number.call, function(index){        
+                                                                   return {
+                                                                       "time": getTimeStampFromTime(getTimeFromIndex(index)),
+                                                                       "distance": 0
+                                                                   };*/

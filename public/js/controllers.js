@@ -95,7 +95,6 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     function update(){
         $http.get('api/info')
 	    .success(function(data, status, headers, config) {
-	        console.log( data, status, headers, config, "Hello" );
                 $scope.paths        = {};
                 $scope.markers      = {};
                 
@@ -103,7 +102,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
 		console.log("Fitbit users added to dataset.", $scope.userData);
 		
 		$scope.userData.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
-		totalDistance = $scope.userData.reduce(function(a,b){ console.log(a) ; return a + b.distance  ; }, 0) * 1.60934 ;
+		totalDistance = $scope.userData.reduce(function(a,b){ return a + b.distance; }, 0) * 1.60934 ;
 		console.log("Users assigned color", $scope.userData);
 		
 		$scope.userData = calcPaths($scope.userData);
@@ -118,12 +117,13 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
 		
 		$scope.percentageValue = calculatedDist / getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
 		
-		var centerCoords   =  getMidpoint($scope.userData[$scope.userData.length - 1].path.start, $scope.userData[0].path.end);
-		$scope.center.lat  =  centerCoords.lat;
-		$scope.center.lng  =  centerCoords.lng;
-                
-		$scope.graphSeries  = $scope.userData.map(function(obj){return obj.displayName; });
-                $scope.graphDataSet = $scope.userData.map(function(obj){return obj.distances.map(function(dist){return dist.distance ;}); });
+		var centerCoords       =  getMidpoint($scope.userData[$scope.userData.length - 1].path.start, $scope.userData[0].path.end);
+		
+		$scope.center.lat      =  centerCoords.lat;
+		$scope.center.lng      =  centerCoords.lng;
+		
+		$scope.graphSeries     = $scope.userData.map(function(obj){return obj.displayName; });
+                $scope.graphDataSet    = $scope.userData.map(function(obj){return !obj.distance ? [] : obj.distances });  // .map(function(dist){return dist.distance ;}); });
                 
                 console.log($scope.graphDataSet);
                 
@@ -135,13 +135,11 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     $scope.$watch( 'userData', function(){
     });        
     
-    //var minutes = 7.5, the_interval = minutes * 60 * 1000;
-    
     // init update 
     update();
     
-    // Listen for server update
-    var socket = io('http://clayton-smith.com:3000');
+    // Listen for server update. Socket.io knows what domain to listen to
+    var socket = io('');
     socket.on('db_update', function (data) {
 	console.log(data.message);
 	update();
