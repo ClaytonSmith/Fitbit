@@ -1,6 +1,7 @@
 // Clayton Smith
 
 // Dont want API keys floating around on the internet
+// TODO: fix roll-over method
 
 var express               = require('express'),
     routes                = require('./routes'),
@@ -8,8 +9,8 @@ var express               = require('express'),
     http                  = require('http'),
     path                  = require('path'),
     OAuth                 = require('oauth-1.0a'),
-    http                  = require('http'),
-    async                 = require('async');
+    async                 = require('async'),
+    cron                  = require('cron');
 
 var config                = require('./config.json');
 
@@ -17,9 +18,6 @@ var FitbitApiClient       = require("fitbit-node"),
     client                = new FitbitApiClient(config.FITBIT_KEY, config.FITBIT_SECRET);
 
 var requestTokenSecrets   = {};
-
-// update interval
-var frequency = 15, the_interval = frequency * 60 * 1000;
 
 //var client = new FitbitApiClient(config.FITGIT_KEY, config.FITGIT_SECRET );
 var app                   = module.exports = express();
@@ -29,14 +27,33 @@ var redirect              = module.exports = express();
 var mongo                 = require('mongoskin'),
     db                    = mongo.db(config.mongo_link, {native_parser: true});
 
+// DEPRICATED: update interval
+var frequency             = 15,
+    the_interval          = frequency * 60 * 1000;
+
+var dailyCronStr          = "0 */15 5-19 * * * ",
+    nightlyCronStr        = "0 30 23  * * * "
+
+var app_data  = {
+    serverVersion: 1.0,
+    clientVersion: 1.0
+    
+}
+
+
 db.bind('keys');
 db.bind('users');
 db.bind('info');
+
+api.locals = app_data
+app.locals(app_data);
 
 app.use(function(req, res, next) {
     req.db = db;
     next();
 });
+
+app.locals({"some cool": "test data"});
 
 /* EXPRESS SETUP */
 app.set('port', process.env.PORT || 3000);
@@ -56,6 +73,7 @@ app.use(express.methodOverride());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(app.router);
 
+
 // Floors time to the preveous quarter hour
 function floorTimeToQuarter(time){
     time.setMilliseconds(Math.floor(time.getMilliseconds() / 1000) * 1000);
@@ -63,6 +81,7 @@ function floorTimeToQuarter(time){
     time.setMinutes(Math.floor(time.getMinutes() / 15) * 15);
     return time;
 }
+
 
 function getIndexFromTime(time){
     time = floorTimeToQuarter(time);
@@ -72,16 +91,18 @@ function getIndexFromTime(time){
 
 // Uses time to find the index  
 function calcLastUpdateIndex() {
-    var time = new Date();
-    return getIndexFromTime(time);
+    var time = new Date();        // Fix this later. IMPORTANT
+    return getIndexFromTime(time)  - 28;
 }
+
 
 function getTimeFromIndex(index) {   
     var time = new Date(0);
-    time.setHours(0,0,0,0); // Set to midnigt of this morning
+    time.setHours(0,0,0); // Set to midnigt of this morning
     time.setMinutes(time.getMinutes() + (index  * 15));
     return time;  // Date obj
 }
+
 
 function getTimeStampFromTime(time){
     return time.getHours() + ':' + time.getMinutes();  // Str
@@ -90,6 +111,21 @@ function getTimeStampFromTime(time){
 function getTimeStamp(){
     return getTimeStampFromTime(getTimeFromIndex(calcLastUpdateIndex()));
 }
+
+function canUpdate(dateX){
+    var last     = new Date( dateX ),
+        current  = new Date();
+    
+    var res = (( last.getFullYear() < current.getFullYear() ||      // on new year
+		 last.getMonth()    < current.getMonth()    ||      // on new month
+		 last.getDay()      < current.getDay()      ||      // on new day
+		 getIndexFromTime(last) < getIndexFromTime(current)) &&  // on new quarter hour
+	       0 <= getIndexFromTime(current) // Don't update before timeslot       LIMIT
+	      );
+    console.log(getIndexFromTime(last), getIndexFromTime(current), res);
+    return res;
+}
+
 
 app.get("/authorize", function (req, res) {
     client.getRequestToken().then(function (results) {
@@ -116,7 +152,7 @@ app.get("/thankyou", function (req, res) {
 	var accessToken = results[0],
 	    accessTokenSecret = results[1],
 	    userId = results[2].encoded_user_id;
-	
+	console.log(accessToken, accessTokenSecret, userID);
 	routes.index(req, res);
         
 	db.keys.findOne(
@@ -143,50 +179,43 @@ app.get("/thankyou", function (req, res) {
 			    access_token_secret: accessTokenSecret
 			}}, {w: 0});	
 		    
-		    console.log(client.requestResource("/profile.json", "GET",
-					               accessToken,	  
-					               accessTokenSecret).then(function (results) {
-                                                           console.log(err);
-					                   var response = JSON.parse(results[0]);
-                                                           
-                                                           db.users.insert({
-						               "atc":  accessToken,
-						               "displayName": response.user.displayName,
-						               "avatar": response.user.avatar,
-						               "distance": 0,
-                                                               "distances": Array.apply(null, Array(calcLastUpdateIndex())).map(Number.prototype.valueOf,0)
-							   },                       
-						           {w: 0});	
-
-                                                           client.requestResource("/activities/date/"+ date +".json", "GET",
-			                                                          access_token,	  
-			                                                          access_token_secret).then(function (results) {
-			                                                              var query = {};
-                                                                                      var key = 'distances.' + currentIndex + '.distance';
-                                                                                      query[key] = JSON.parse(results[0]).summary.distances[0].distance;
-                                                                                      query['distance'] = query[key];
-				                                                      
-										      
-										      var distance = JSON.parse(results[0]).summary.distances[0].distance
-										      db.users.update(
-											  {atc:  user.tokens.access_token },
-											  {$push: {"distances": distance }},
-											  {$set:  {"distance":  distance}},
-											   {multi: true},
-                                                                                           function(err, obj){
-                                                                                          });
-											  /*db.users.update(
-                                                                                          {atc:  user.tokens.access_token },
-				                                                          {$set:  },
-                                                                                          {multi: true},
-                                                                                           function(err, obj){
-                                                                                          });
-											  */
-			                                                              
-										      // Tell client to get new data
-										      io.emit('db_update', {message: 'A new user has been added. Please update yourself.'});
-										  });
-                                                       }));
+		    client.requestResource("/profile.json", "GET",
+					   accessToken,	  
+					   accessTokenSecret).then(function (results) {
+                                               console.log(err);
+					       var response = JSON.parse(results[0]);
+                                               
+                                               db.users.insert(
+						   {
+						       "atc":  accessToken,
+						       "displayName": response.user.displayName,
+						       "avatar": response.user.avatar,
+						       "distance": 0,
+                                                       "distances": Array.apply(null,Array(calcLastUpdateIndex())).map(function(el){return null;})
+						   },
+						   {w: 0});	
+					       
+                                               client.requestResource("/activities/date/"+ date +".json", "GET",
+			                                              access_token,	  
+			                                              access_token_secret).then(function (results){ 
+									  var distance = JSON.parse(results[0]).summary.distances[0].distance
+									  db.users.update(
+									      {atc:  user.tokens.access_token },
+									      {
+										  $push: {
+										      "distances": { 
+											  $each: [ distance ],
+											  $position: calcLastUpdateIndex()
+										      }},
+										  $set:  {"distance":  distance}
+									      },
+									      {multi: true},
+                                                                              function(err, obj){
+										  // Tell client to get new data
+										  io.emit('db_update', {message: 'A new user has been added. Please update yourself.'}); 
+									      });
+								      });
+                                           });
 		}
 	    });
 	routes.index(req, res);
@@ -209,12 +238,11 @@ if (app.get('env') === 'production') {
 app.get('/partials/:name', routes.partial );
 
 // JSON API
-app.get('/api/info',               api.info);
-app.get('/api/req_update',         api.update);
-app.post('/api/add_user',          api.addUser);
+app.get('/api/info',         api.info);
+app.get('/api/req_update',   api.update);
+app.post('/api/add_user',    api.addUser);
 
 // redirect all others to the index (HTML5 history)
-// 404 page collector
 
 //May not be needed
 app.get('/', function(req, res) {
@@ -233,19 +261,6 @@ redirect.get('*', function(req, res) {
     res.end();
 });
 
-// Start Server
-var io = require('socket.io').listen(
-    http.createServer(app).listen(app.get('port'), function () {
-	console.log('Express server listening on port ' + app.get('port'));
-	console.log( "Current update time:  ",  getTimeStamp());
-	console.log( "Current update index: ",  calcLastUpdateIndex());
-    }));
-
-// Fitbit callback puts users on port 6544. Listen on port 6544 and redirect users to port 3000
-// so they may make API calls.
-http.createServer(redirect).listen(redirect.get('port'), function () {
-    console.log('Express server listening on port ' + redirect.get('port'));
-});
 
 // Socket setup
 
@@ -265,7 +280,7 @@ function getFitbitData( user, done){
      var today = new Date();
 
     // Date string. Find better way.
-    date = 'Y-m-d'
+    var date = 'Y-m-d'
 	.replace('Y', today.getFullYear())
 	.replace('m', today.getMonth()+1)
 	.replace('d', today.getDate());
@@ -276,27 +291,23 @@ function getFitbitData( user, done){
 			   user.tokens.access_token,
 			   user.tokens.access_token_secret
 			  ).then(function (results) {
-			      var query = {};
-			      //var key = 'distances.' + currentIndex + '.distance';
-			      
-			      //query[key] = JSON.parse(results[0]).summary.distances[0].distance;
-			      //query['distance'] = query[key];
-			      
+			      var query = {};			      
 			      var distance = JSON.parse(results[0]).summary.distances[0].distance
 			      db.users.update(
-                                  {atc:  user.tokens.access_token },
-				  {$push: {"distances": distance }},
+				  {atc:  user.tokens.access_token },
+				  {
+				      $push: {
+					  "distances": { 
+					      $each: [ distance ],
+					      $position: calcLastUpdateIndex()
+					  }},
+				      $set:  {"distance":  distance}
+				  },
 				  {multi: true},
-                                  function(err, obj){    
-				  });
-			      db.users.update(
-                                  {atc:  user.tokens.access_token },
-                                  {$set:  {"distance":  distance }},
-				  {multi: true},
-                                  function(err, obj){    
+                                  function(err, obj){
 				      hackyThing -= 1;
 				      console.log(hackyThing);
-				      if( hackyThing === 1 ){
+				      if( hackyThing === 1 ){ // off by one because extra user in keys set
 					  console.log('*********************** DB updated.');
 					  io.emit('db_update', {message: 'New data from Fitbit. Please update yourself.'});
 					  done();
@@ -306,11 +317,11 @@ function getFitbitData( user, done){
 }
 
 var hackyThing = 0;
-function updateDB() {
-    console.log("I am doing my "+ frequency +" minute check");
-    db.info.findOne(
-	{ info: "lastUpdateTime",},
-	function(err, lastUpdate){
+
+function updateDB() {  
+    db.info.findOne(  
+	{info: "lastUpdateTime"},
+	function(err, lastUpdate){  // lastUpdateTime will prevent multiple servers from updating a sing database. 
 	    console.log('looking for last update time'); 
 	    if(err){
 		condole.log('bad server error');
@@ -318,45 +329,31 @@ function updateDB() {
 	    
 	    var currentUpdateTime = new Date();
 	    var lastUpdateTime    = 0;
-	   
+	    
 	    if(!lastUpdate){
 		console.log('Set first update time');
 		db.info.insert({
 		    info: "lastUpdateTime",
-		    "lastUpdateTime": currentUpdateTime
+		    lastUpdateTime: currentUpdateTime
 		}, {w: 0});
 		
 		lastUpdateTime = currentUpdateTime;
 	    } else {
-		console.log( 'using last update time.', lastUpdate.lastUpdateTime);
+		console.log( 'Last updated: ', lastUpdate.lastUpdateTime);
 		lastUpdateTime = lastUpdate.lastUpdateTime;
 	    }
 	    
-	    // Dont update too often!
-	    if( getIndexFromTime(lastUpdateTime) == getIndexFromTime(currentUpdateTime)){ 
+	    // Do not update if already updated
+	    if( canUpdate(lastUpdateTime) ){ 
 		console.log('The database is updating.');
 		
-		if( calcLastUpdateIndex() !== 0 ){
-		    console.log( 'RESET');
-		    db.users.update(
-			{},
-			{ $set: {"distance": 0,  
-				 "distances": Array.apply(null, Array(calcLastUpdateIndex())).map(Number.prototype.valueOf,0)
-				}},
-			{multi: true},
-			function(err, obj){ 
-			});	
-		}
-		
 		db.keys.find({}).toArray(function(err, result){
-		    console.log( 'Builing reqest chain.' );
 		    hackyThing = result.length;
 		    async.forEach(result, getFitbitData, function(err){
 			console.log(err);
 		    });
-		});
+		})
 		
-		// update time
 		db.info.update(
 		    { "info": "lastUpdateTime",},
 		    { $set: { "lastUpdateTime": new Date()}},
@@ -367,16 +364,71 @@ function updateDB() {
 		
 	    } else {
 		console.log('No updates needed at this time');
+		
+		// THIS server might not have updated the DB but someone did.
+		// Lets let the clients know there is an update
+		io.emit('db_update', {message: 'New data might exist from Fitbit. Please update yourself.'});
 	    }
 	});
-}	
+}  
 
+function dailyReset(){
+    // check for end week, 
+    // check for end of month
+    // last after get values
+    
+    // stage for next day
+    console.log("Daily reset");
+    db.users.update(
+	{},
+	{ $set: {
+	    "distance": 0,
+	    "distances": Array.apply(null, Array(48)).map(function(el){return null;})
+	}},
+	{multi: true},
+	function(err, obj){ 
+	    console.log("I RESET!",err, obj);
+	}
+    );
+}
+
+var dailyMonitor = cron.job(dailyCronStr, function(){
+    console.log("I am doing my 15 minute check"); 
+    updateDB();
+});
+
+var nightlyMonitor = cron.job(nightlyCronStr, function(){
+    console.log("I am doing my nightly check"); 
+    // if month
+    // if week
+    dailyReset();
+});
+
+
+
+/************* START SERVER STUFF :) *************/
+// Init update
+//
 updateDB();
-setInterval( updateDB, the_interval);
 
-/*
-Array.apply(null, {length: (1440 / frequency)}).map(Number.call, function(index){        
-                                                                   return {
-                                                                       "time": getTimeStampFromTime(getTimeFromIndex(index)),
-                                                                       "distance": 0
-                                                                   };*/
+// Start monitors
+dailyMonitor.start();
+nightlyMonitor.start();
+
+
+//dailyReset()
+
+// Start Server and init socket
+var io = require('socket.io').listen(
+    http.createServer(app).listen(app.get('port'), function () {
+	console.log('Express server listening on port ' + app.get('port'));
+	console.log( "Current update time:  ",  getTimeStamp());
+	console.log( "Current update index: ",  calcLastUpdateIndex());
+    }));
+
+// Fitbit callback puts users on port 6544 on localhost. Listen on port 6544 and redirect users to port 3000
+// so they may make API calls.
+// ^^ This only applies if the Fitbit redirect URL has not been set. ^^ 
+http.createServer(redirect).listen(redirect.get('port'), function () {
+    console.log('Express server listening on port ' + redirect.get('port'));
+});

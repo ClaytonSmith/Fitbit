@@ -36,7 +36,14 @@ function calcLastUpdateIndex() {
 function getTimeFromIndex(index) {   
     var time = new Date(0);
     time.setHours(0,0,0,0); // Set to midnigt of this morning
-    time.setMinutes(time.getMinutes() + (index  * 15));
+    time.setMinutes(time.getMinutes() + ((index + 28)  * 15));
+    return time;  // Date obj
+}
+
+function getTimeFromIndexTemp(index) {   
+    var time = new Date(0);
+    time.setHours(0,0,0,0); // Set to midnigt of this morning
+    time.setMinutes(time.getMinutes() + ((index)  * 15));
     return time;  // Date obj
 }
 
@@ -46,6 +53,10 @@ function getTimeStampFromTime(time){
 
 function getTimeStamp(){
     return getTimeStampFromTime(getTimeFromIndex(calcLastUpdateIndex()));
+}
+
+function getTimeStampTemp(){
+    return getTimeStampFromTime(getTimeFromIndexTemp(calcLastUpdateIndex()));
 }
 
 /******** CONTROLLERS ********/
@@ -75,11 +86,12 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
 
     var totalDistance = 0;
     $scope.graphLabels  = [];
-    $scope.graphLabels  =  Array.apply(null, {length: (1440 / 15)}).map(Number.call, function(index){ return  getTimeStampFromTime(getTimeFromIndex(index)); });
+    $scope.graphLabels  =  Array.apply(null, {length: 46}).map(Number.call, function(index){ return  getTimeStampFromTime(getTimeFromIndex(index)); });
     $scope.graphDataSet = [];    
     $scope.exampleData  = []; //NN
     $scope.paths        = {};
     $scope.markers      = {};
+    
     $scope.center       = {
         lat: 37.5960374,
         lng: -97.0452066,
@@ -97,8 +109,10 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
 	    .success(function(data, status, headers, config) {
                 $scope.paths        = {};
                 $scope.markers      = {};
+		$scope.lastUpdate   = getTimeStampTemp();
                 
 		$scope.userData = $filter('orderBy')(data, '-distance');
+
 		console.log("Fitbit users added to dataset.", $scope.userData);
 		
 		$scope.userData.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
