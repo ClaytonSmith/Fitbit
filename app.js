@@ -1,7 +1,6 @@
 // Clayton Smith
 
 // Dont want API keys floating around on the internet
-// TODO: fix roll-over method
 
 var express               = require('express'),
     routes                = require('./routes'),
