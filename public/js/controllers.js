@@ -74,7 +74,8 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo){
                 $scope.markers      = {};
                 
 		$scope.userData = $filter('orderBy')(data, '-distance');
-		
+
+                console.log('last update index', calcLastUpdateIndex());
 		console.log("Fitbit users added to dataset.", $scope.userData);
 		
 		$scope.userData.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
