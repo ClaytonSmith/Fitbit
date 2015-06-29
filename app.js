@@ -173,7 +173,8 @@ app.get("/thankyou", function (req, res) {
     var token    = req.query.oauth_token,
 	secret   = requestTokenSecrets[token],
         verifier = req.query.oauth_verifier;
-    
+
+    console.log('********** Hello!');
     client.getAccessToken(token, secret, verifier).then(function (results) {
 	var accessToken = results[0],
 	    accessTokenSecret = results[1],
