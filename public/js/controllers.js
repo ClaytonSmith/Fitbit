@@ -101,7 +101,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo){
 		$scope.center.lng      =  centerCoords.lng;
 		
 		$scope.graphSeries     = $scope.userData.map(function(obj){return obj.displayName; });
-                $scope.graphDataSet    = $scope.userData.map(function(obj){return !obj.distance ? [] : obj.distances });  // .map(function(dist){return dist.distance ;}); });
+                $scope.graphDataSet    = $scope.userData.map(function(obj){return !obj.distance ? [] : obj.distances.splice(0, calcLastUpdateIndex() + 1) });
                 
                 console.log($scope.graphDataSet);
                 
@@ -270,7 +270,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo){
     // (TIME.HOURS * 4 ) + TIME.MINUTES - OFFSET
     function getIndexFromTime(time){
 	time = floorTimeToQuarter(time);
-	return parseInt(time.getHours() * (60 + time.getMinutes()) / 15)
+	return parseInt(time.getHours() * 4 + (time.getMinutes() / 15))
             - $rootScope.appData.trackerInfo.startTime.getHours() * 4; // int
     }
 
