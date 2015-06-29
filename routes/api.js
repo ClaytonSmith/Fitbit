@@ -16,19 +16,16 @@ function pullFitbitData(uID, uAK){
 
 exports.update = function(req, res, next){
     console.log('Updating database.');
-
-    req.db.users.find().forEach( function(user){
-	// pull and replace
+    req.db.users.find().toArray( function(err, item){  
+        res.json(item);
     });
 }
 
 // returns a list of users 
 exports.info = function(req, res, next){
     console.log('Info is being requested.');
-    console.log(exports);
-    req.db.users.find().toArray( function(err, item){  
-        res.json(item);
-    });
+    res.json(exports.locals);
+    res.end();
 }
 
 exports.addUser = function(req, res, next){      

@@ -17,10 +17,18 @@ var app = angular.module('myApp', [
 
 // Configure angular client side routing
 app.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
-    $routeProvider.when('/home',     {templateUrl: 'partials/home',     controller:      mapCtrl});
-
+    $routeProvider.when('/home',     {templateUrl: 'partials/home',
+				      controller: mapCtrl,
+				      resolve: ['getInfo', function(getInfo){	
+					  return getInfo.promise;
+				      }]
+				     });
+    
     //	//Default path
     $routeProvider.otherwise({redirectTo: '/home'});
     $locationProvider.html5Mode(true);
 }]);
+
+
+
 

@@ -35,10 +35,19 @@ var appData  = {
     serverVersion: 1.01,
     clientVersion: 1.0,
     trackerInfo: {
-        startTime: function(){ x = new Date(); return new Date(x.getUTCFullYear(), x.getUTCMonth()+1, x.getUTCDate(), /*START*/ 5, 0, 0, 0); },
-        endTime:  function(){  x = new Date(); return new Date(x.getUTCFullYear(), x.getUTCMonth()+1, x.getUTCDate(), /*END*/  19, 0, 0, 0); }
+        startTime:  new Date((new Date()).getUTCFullYear(), (new Date()).getUTCMonth(), (new Date()).getUTCDate(), /*START*/ 5, 0, 0, 0),
+	endTime:    new Date((new Date()).getUTCFullYear(), (new Date()).getUTCMonth(), (new Date()).getUTCDate(), /*END*/   19, 0, 0, 0)
     }
 }
+
+
+
+api.locals = appData
+app.locals(appData);
+console.log(appData.trackerInfo.startTime);
+console.log(api.locals.trackerInfo.startTime);
+
+
 
 var cronJobs = [
     {
@@ -61,9 +70,8 @@ var cronJobs = [
 db.bind('info');
 db.bind('keys');
 db.bind('users');
+db.bind('history');
 
-api.locals = appData
-app.locals(appData);
 
 app.use(function(req, res, next) {
     req.db = db;
@@ -102,7 +110,7 @@ function floorTimeToQuarter(time){
 function getIndexFromTime(time){
     time = floorTimeToQuarter(time);
     return parseInt(time.getHours() * (60 + time.getMinutes()) / 15)
-        - appData.trackerInfo.startTime().getHours() * 4; // int
+        - appData.trackerInfo.startTime.getHours() * 4; // int
 }
 
 
@@ -114,7 +122,7 @@ function calcLastUpdateIndex() {
 
 
 function getTimeFromIndex(index) {   
-    var time = appData.trackerInfo.startTime()
+    var time = new Date( appData.trackerInfo.startTime);
     time.setMinutes(time.getMinutes() + (index  * 15));
     return time;  // Date obj
 }
@@ -253,7 +261,7 @@ app.get('/partials/:name', routes.partial );
 
 // JSON API
 app.get('/api/info',         api.info);
-app.get('/api/req_update',   api.update);
+app.get('/api/update',   api.update);
 app.post('/api/add_user',    api.addUser);
 
 // redirect all others to the index (HTML5 history)
@@ -387,6 +395,25 @@ function updateDB() {
 }  
 
 function nightlyUpdate(){
+    
+    var dat = Date((new Date()).getUTCFullYear(), (new Date()).getUTCMonth(), (new Date()).getUTCDate(), 0, 0, 0, 0)
+    var obj = {};
+
+    db.users.find({}).toArray(function(err, result){
+	
+	if(!result) return ;
+	
+	obj[date] = {
+	    distance:  result.distance,
+	    distances: result.distances
+	};
+	
+	db.history.update(
+	    {uID: result._id},
+	    {$push: {records: obj}},
+	    {multi: false},
+	    function(err, thing){});
+    });
 };
 
 function morningReset(){
@@ -395,7 +422,8 @@ function morningReset(){
 	{},
 	{ $set: {
 	    "distance": 0,
-	    "distances": Array.apply(null, Array(48)).map(function(el){return null;})
+	    "distances": Array.apply(null, Array((appData.trackerInfo.endTime.getHours() 
+						  - appData.trackerInfo.startTime.getHours()) *4)).map(function(el){return null;})
 	}},
 	{multi: true},
 	function(err, obj){ 
@@ -403,6 +431,7 @@ function morningReset(){
 	}
     );
 }
+
 
 /************* START SERVER STUFF :) *************/
 // Init update

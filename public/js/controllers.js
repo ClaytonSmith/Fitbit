@@ -18,63 +18,25 @@ function include(arr,obj) {
 }
 
 
-// Floors time to the preveous quarter hour
-function floorTimeToQuarter(time){
-    time.setMilliseconds(Math.floor(time.getMilliseconds() / 1000) * 1000);
-    time.setSeconds(Math.floor(time.getSeconds() / 60) * 60);
-    time.setMinutes(Math.floor(time.getMinutes() / 15) * 15);
-    return time;
-}
-
-// Uses time to find the index  
-function calcLastUpdateIndex() {
-    var time = new Date();
-    time = floorTimeToQuarter(time);
-    return  parseInt(time.getHours() * 60 + time.getMinutes()) / 15; // int
-}
-
-function getTimeFromIndex(index) {   
-    var time = new Date(0);
-    time.setHours(0,0,0,0); // Set to midnigt of this morning
-    time.setMinutes(time.getMinutes() + ((index + 28)  * 15));
-    return time;  // Date obj
-}
-
-function getTimeFromIndexTemp(index) {   
-    var time = new Date(0);
-    time.setHours(0,0,0,0); // Set to midnigt of this morning
-    time.setMinutes(time.getMinutes() + ((index)  * 15));
-    return time;  // Date obj
-}
-
-function getTimeStampFromTime(time){
-    return time.getHours() + ':' + time.getMinutes();  // Str
-}
-
-function getTimeStamp(){
-    return getTimeStampFromTime(getTimeFromIndex(calcLastUpdateIndex()));
-}
-
-function getTimeStampTemp(){
-    return getTimeStampFromTime(getTimeFromIndexTemp(calcLastUpdateIndex()));
-}
 
 /******** CONTROLLERS ********/
-function appCtrl($scope, $http, $location, $rootScope) {
+function appCtrl($scope, $http, $location, $rootScope){
     console.log('Hello from app controller.');
 }
 
 
 /* Controllers */
-function mapCtrl($scope, $http, $location, $rootScope, $filter) {
-    console.log("Hello from map controller.");
+function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo){
+    $rootScope.appData = getInfo.getData();
+    console.log("Hello from map controller.", $rootScope.appData);
+    
 
     var cloudLockLogo = "https://pbs.twimg.com/profile_images/517321674471923712/bFqGdWJL_400x400.jpeg";
     var startDest = {lat: 42.3680275, lng: -71.2421328};  // CloudLock HQ
     var endDest   = {lat: 37.7924224, lng: -122.3931885}; // Salesforce HQ
-
+    
     $scope.gotStuff = false;
-
+    
     function randomColor(seed){
 	var letters = '0123456789ABCDEF'.split('');
 	var color = '#';
@@ -83,10 +45,11 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
 	}
 	return color;
     }
-
+    
     var totalDistance = 0;
-    $scope.graphLabels  = [];
-    $scope.graphLabels  =  Array.apply(null, {length: 46}).map(Number.call, function(index){ return  getTimeStampFromTime(getTimeFromIndex(index)); });
+    $scope.graphLabels  = Array.apply(null, {length: ($rootScope.appData.trackerInfo.endTime.getHours() 
+						  - $rootScope.appData.trackerInfo.startTime.getHours()) *4}).map(Number.call, function(index){ return getTimeStampFromTime(getTimeFromIndex(index)); });
+    console.log( $scope.graphLabels);
     $scope.graphDataSet = [];    
     $scope.exampleData  = []; //NN
     $scope.paths        = {};
@@ -105,14 +68,13 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
     $scope.userData = [];
     
     function update(){
-        $http.get('api/info')
+        $http.get('api/update')
 	    .success(function(data, status, headers, config) {
                 $scope.paths        = {};
                 $scope.markers      = {};
-		$scope.lastUpdate   = getTimeStampTemp();
                 
 		$scope.userData = $filter('orderBy')(data, '-distance');
-
+		
 		console.log("Fitbit users added to dataset.", $scope.userData);
 		
 		$scope.userData.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
@@ -146,6 +108,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
                 console.log('Unable to get data', data); // Cry
 	    });
     }
+    
     
     $scope.$watch( 'userData', function(){
     });        
@@ -293,12 +256,47 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
 	    };
 	});       
     }
+    
+    // Floors time to the preveous quarter hour
+    function floorTimeToQuarter(time){
+	time.setMilliseconds(Math.floor(time.getMilliseconds() / 1000) * 1000);
+	time.setSeconds(Math.floor(time.getSeconds() / 60) * 60);
+	time.setMinutes(Math.floor(time.getMinutes() / 15) * 15);
+	return time;
+    }
+
+
+    // (TIME.HOURS * 4 ) + TIME.MINUTES - OFFSET
+    function getIndexFromTime(time){
+	time = floorTimeToQuarter(time);
+	return parseInt(time.getHours() * (60 + time.getMinutes()) / 15)
+            - $rootScope.appData.trackerInfo.startTime.getHours() * 4; // int
+    }
+
+
+    // Uses time to find the index  
+    function calcLastUpdateIndex() {
+	var time = new Date();    
+	return getIndexFromTime(time);
+    }
+
+
+    function getTimeFromIndex(index) {   
+	var time = new Date($rootScope.appData.trackerInfo.startTime);
+	time.setMinutes(time.getMinutes() + (index  * 15));
+	return time;  // Date obj
+    }
+
+
+    function getTimeStampFromTime(time){
+	return time.getHours() + ':' + time.getMinutes();  // Str
+    }
+    
+    function getTimeStamp(){
+	return getTimeStampFromTime(getTimeFromIndex(calcLastUpdateIndex()));
+    }
+
 }
 
-mapCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter'];
+mapCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter', 'getInfo'];
 appCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope'];
-
-
-
-
-
