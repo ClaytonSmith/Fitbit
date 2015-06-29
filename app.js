@@ -99,6 +99,7 @@ app.use(app.router);
 
 // Floors time to the preveous quarter hour
 function floorTimeToQuarter(time){
+    time = new Date(time);
     time.setMilliseconds(Math.floor(time.getMilliseconds() / 1000) * 1000);
     time.setSeconds(Math.floor(time.getSeconds() / 60) * 60);
     time.setMinutes(Math.floor(time.getMinutes() / 15) * 15);
@@ -109,21 +110,24 @@ function floorTimeToQuarter(time){
 // (TIME.HOURS * 4 ) + TIME.MINUTES - OFFSET
 function getIndexFromTime(time){
     time = floorTimeToQuarter(time);
-    return parseInt(time.getHours() * (60 + time.getMinutes()) / 15)
-        - appData.trackerInfo.startTime.getHours() * 4; // int
+    var mid =  parseInt(time.getHours() * 4 + (time.getMinutes() / 15));
+    var offset = parseInt(appData.trackerInfo.startTime.getHours() * 4 + (appData.trackerInfo.startTime.getMinutes()/15)); // int
+    return mid - offset;
 }
 
 
 // Uses time to find the index  
 function calcLastUpdateIndex() {
-    var time = new Date();    
+    var time = new Date();
     return getIndexFromTime(time);
 }
 
 
 function getTimeFromIndex(index) {   
     var time = new Date( appData.trackerInfo.startTime);
+    console.log(time);
     time.setMinutes(time.getMinutes() + (index  * 15));
+    console.log(time);
     return time;  // Date obj
 }
 
@@ -313,17 +317,15 @@ function getFitbitData( user, done){
 			   user.tokens.access_token,
 			   user.tokens.access_token_secret
 			  ).then(function (results) {
-			      var query = {};			      
+			      var obj = {};
+
 			      var distance = JSON.parse(results[0]).summary.distances[0].distance
+		              obj["distances." + calcLastUpdateIndex().toString()] = distance;
+                              obj["distance"] =   distance;
 			      db.users.update(
 				  {atc:  user.tokens.access_token },
 				  {
-				      $push: {
-					  "distances": { 
-					      $each: [ distance ],
-					      $position: calcLastUpdateIndex()
-					  }},
-				      $set:  {"distance":  distance}
+				      $set: obj
 				  },
 				  {multi: true},
                                   function(err, obj){
