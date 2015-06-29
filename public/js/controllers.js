@@ -118,7 +118,8 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter) {
 		$scope.userData.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
 		totalDistance = $scope.userData.reduce(function(a,b){ return a + b.distance; }, 0) * 1.60934 ;
 		console.log("Users assigned color", $scope.userData);
-		
+
+		// adds a path field to userData
 		$scope.userData = calcPaths($scope.userData);
 		createPaths($scope.userData);
 		console.log("Paths added");

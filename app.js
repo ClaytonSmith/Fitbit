@@ -16,9 +16,10 @@ var config                = require('./config.json');
 var FitbitApiClient       = require("fitbit-node"),
     client                = new FitbitApiClient(config.FITBIT_KEY, config.FITBIT_SECRET);
 
+var today                 = new Date();
+
 var requestTokenSecrets   = {};
 
-//var client = new FitbitApiClient(config.FITGIT_KEY, config.FITGIT_SECRET );
 var app                   = module.exports = express();
 
 var redirect              = module.exports = express();
@@ -30,29 +31,44 @@ var mongo                 = require('mongoskin'),
 var frequency             = 15,
     the_interval          = frequency * 60 * 1000;
 
-var dailyCronStr          = "0 */15 5-19 * * * ",
-    nightlyCronStr        = "0 30 23  * * * "
-
-var app_data  = {
-    serverVersion: 1.0,
-    clientVersion: 1.0
-    
+var appData  = {
+    serverVersion: 1.01,
+    clientVersion: 1.0,
+    trackerInfo: {
+        startTime: function(){ x = new Date(); return new Date(x.getUTCFullYear(), x.getUTCMonth()+1, x.getUTCDate(), /*START*/ 5, 0, 0, 0); },
+        endTime:  function(){  x = new Date(); return new Date(x.getUTCFullYear(), x.getUTCMonth()+1, x.getUTCDate(), /*END*/  19, 0, 0, 0); }
+    }
 }
 
+var cronJobs = [
+    {
+        name: "Quarter hour update",
+        cronStr: "0 */15 5-19 * * * ", // Every 15 minutes between 5 am and 7 pm
+        job: function(){ updateDB(); }
+    },
+    {
+        name: "Nightly update",
+        cronStr: "0 45 23 * * * ",
+        job: function(){ nightlyUpdate(); }
+    },
+    {
+        name: "Pre-Activity staging",
+        cronStr: "0 15 0 * * *",
+        job: function(){ dailyReset(); }
+    }
+]
 
+db.bind('info');
 db.bind('keys');
 db.bind('users');
-db.bind('info');
 
-api.locals = app_data
-app.locals(app_data);
+api.locals = appData
+app.locals(appData);
 
 app.use(function(req, res, next) {
     req.db = db;
     next();
 });
-
-app.locals({"some cool": "test data"});
 
 /* EXPRESS SETUP */
 app.set('port', process.env.PORT || 3000);
@@ -82,22 +98,23 @@ function floorTimeToQuarter(time){
 }
 
 
+// (TIME.HOURS * 4 ) + TIME.MINUTES - OFFSET
 function getIndexFromTime(time){
     time = floorTimeToQuarter(time);
-    return  parseInt(time.getHours() * 60 + time.getMinutes()) / 15; // int
+    return parseInt(time.getHours() * (60 + time.getMinutes()) / 15)
+        - appData.trackerInfo.startTime().getHours() * 4; // int
 }
 
 
 // Uses time to find the index  
 function calcLastUpdateIndex() {
-    var time = new Date();        // Fix this later. IMPORTANT
-    return getIndexFromTime(time)  - 28;
+    var time = new Date();    
+    return getIndexFromTime(time);
 }
 
 
 function getTimeFromIndex(index) {   
-    var time = new Date(0);
-    time.setHours(0,0,0); // Set to midnigt of this morning
+    var time = appData.trackerInfo.startTime()
     time.setMinutes(time.getMinutes() + (index  * 15));
     return time;  // Date obj
 }
@@ -115,14 +132,12 @@ function canUpdate(dateX){
     var last     = new Date( dateX ),
         current  = new Date();
     
-    var res = (( last.getFullYear() < current.getFullYear() ||      // on new year
-		 last.getMonth()    < current.getMonth()    ||      // on new month
-		 last.getDay()      < current.getDay()      ||      // on new day
-		 getIndexFromTime(last) < getIndexFromTime(current)) &&  // on new quarter hour
-	       0 <= getIndexFromTime(current) // Don't update before timeslot       LIMIT
-	      );
-    console.log(getIndexFromTime(last), getIndexFromTime(current), res);
-    return res;
+    return (
+        ( last.getFullYear() < current.getFullYear() ||      // on new year
+	  last.getMonth()    < current.getMonth()    ||      // on new month
+	  last.getDate()     < current.getDate()     ||      // on new day
+	  getIndexFromTime(last) < getIndexFromTime(current)) &&  // on new quarter hour
+	0 <= getIndexFromTime(current)); // Don't update before time slot   
 }
 
 
@@ -146,7 +161,7 @@ app.get("/thankyou", function (req, res) {
     var token    = req.query.oauth_token,
 	secret   = requestTokenSecrets[token],
         verifier = req.query.oauth_verifier;
-
+    
     client.getAccessToken(token, secret, verifier).then(function (results) {
 	var accessToken = results[0],
 	    accessTokenSecret = results[1],
@@ -306,7 +321,7 @@ function getFitbitData( user, done){
                                   function(err, obj){
 				      hackyThing -= 1;
 				      console.log(hackyThing);
-				      if( hackyThing === 1 ){ // off by one because extra user in keys set
+			              if( hackyThing === 1 ){ // off by one because extra user in keys set
 					  console.log('*********************** DB updated.');
 					  io.emit('db_update', {message: 'New data from Fitbit. Please update yourself.'});
 					  done();
@@ -371,13 +386,11 @@ function updateDB() {
 	});
 }  
 
-function dailyReset(){
-    // check for end week, 
-    // check for end of month
-    // last after get values
+function nightlyUpdate(){
+};
+
+function morningReset(){
     
-    // stage for next day
-    console.log("Daily reset");
     db.users.update(
 	{},
 	{ $set: {
@@ -386,24 +399,10 @@ function dailyReset(){
 	}},
 	{multi: true},
 	function(err, obj){ 
-	    console.log("I RESET!",err, obj);
+	    console.log(err, obj);
 	}
     );
 }
-
-var dailyMonitor = cron.job(dailyCronStr, function(){
-    console.log("I am doing my 15 minute check"); 
-    updateDB();
-});
-
-var nightlyMonitor = cron.job(nightlyCronStr, function(){
-    console.log("I am doing my nightly check"); 
-    // if month
-    // if week
-    dailyReset();
-});
-
-
 
 /************* START SERVER STUFF :) *************/
 // Init update
@@ -411,11 +410,10 @@ var nightlyMonitor = cron.job(nightlyCronStr, function(){
 updateDB();
 
 // Start monitors
-dailyMonitor.start();
-nightlyMonitor.start();
-
-
-//dailyReset()
+cronJobs.forEach(function(obj){
+    console.log('Launching tast', obj.name);
+    cron.job(obj.cronStr, obj.job).start();
+});
 
 // Start Server and init socket
 var io = require('socket.io').listen(
