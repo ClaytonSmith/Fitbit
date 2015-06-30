@@ -10,18 +10,29 @@
   <!-- Map Directive-->
   <leaflet class="pure-u-1-1" center="center" paths="paths" markers="markers" defaults="defaults" height="350"></leaflet>
 
-  <canvas style="margin: 0 0 0 1em" id="line" class="chart chart-line"  legend="true" data="graphDataSet" labels="graphLabels" series="graphSeries" height="70%"></canvas>
+  <canvas style="margin: 0 0 0 1em" id="line" class="chart chart-line"  legend="true" data="graphDataSet" labels="graphLabels" series="graphSeries" ></canvas>
 </div>
 
 <hr>
 <div class="pure-g" id="groups">
   <div class="pure-u-5-5"><h1 class="center">Groups</h1></div>
   <div class="pure-u-1-2">
-    <h2 class="center">Unassigned Users</h2>
-    <p class="center">Comming soon</p>
+    <h2 class="center"></h2>
+    <p class="center">Also coming soon</p>
+<!--    <div class="pure-menu custom-restricted-width group-list">
+      <span class="pure-menu-heading">Unassigned Users</span>
+      <ul class="pure-menu-list" ng-repeat="user in unassignedUsers">
+
+        <li class="pure-menu-item">
+          <button class="group-button">
+            {{user.displayName}}
+          </button>
+        <li>
+
+    </div> -->
   </div>
   <div class="pure-u-1-2">
     <h2 class="center">User Groups</h2>
-    <p class="center">Also comming soon</p>
+    <p class="center">Also coming soon</p>
   </div>
 </div>

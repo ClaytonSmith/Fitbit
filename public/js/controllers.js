@@ -102,9 +102,12 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo){
 		
 		$scope.graphSeries     = $scope.userData.map(function(obj){return obj.displayName; });
                 $scope.graphDataSet    = $scope.userData.map(function(obj){return !obj.distance ? [] : obj.distances.splice(0, calcLastUpdateIndex() + 1) });
-                
+
+
+                $scope.unassignedUsers = $scope.userData.filter(function(obj){return obj.group ? false : true });
                 console.log($scope.graphDataSet);
-                
+
+                console.log( $scope.unassignedUsers );
             }).error(function(data){
                 console.log('Unable to get data', data); // Cry
 	    });
