@@ -33,3 +33,21 @@ html, body{
 .maxValue {
     border-radius: 0;
 }
+
+canvas{
+    width: 99% !important;
+    height: 350px !important;
+    margin: 0 0 5px 0 !important;
+}
+
+.center {
+    margin-left: auto;
+    margin-right: auto;
+
+    text-align: center;
+}
+
+
+#groups{
+    margin: 5px 0 20px 0;
+}

@@ -28,6 +28,18 @@ exports.info = function(req, res, next){
     res.end();
 }
 
+exports.addUserToGroup = function(req, res, next){      
+
+    console.log( 'adding user to group' );
+
+    req.db.users.update({atc: req.body.user.atc},
+                        {$set: {group: req.body.groupName}},
+                        {multi: false},
+                        function(err, obj){
+                            console.log(err, obj);
+                        });   
+}
+
 exports.addUser = function(req, res, next){      
     console.log('User is being added.');
     

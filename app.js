@@ -176,7 +176,8 @@ app.get("/thankyou", function (req, res) {
 
     console.log('********** Hello!', token, secret, verifier);
     client.getAccessToken(token, secret, verifier).then(function (results) {
-	var accessToken = results[0],
+        console.log('test');
+        var accessToken = results[0],
 	    accessTokenSecret = results[1],
 	    userId = results[2].encoded_user_id;
 
@@ -222,7 +223,9 @@ app.get("/thankyou", function (req, res) {
                                                        "distances": Array.apply(null,Array(calcLastUpdateIndex())).map(function(el){return null;})
 						   },
 						   {w: 0});	
-					       
+
+                                               db.history.insert({atc: accessToken, records: []});
+                                               
                                                client.requestResource("/activities/date/"+ date +".json", "GET",
 			                                              access_token,	  
 			                                              access_token_secret).then(function (results){ 
@@ -269,7 +272,7 @@ app.get('/partials/:name', routes.partial );
 app.get('/api/info',         api.info);
 app.get('/api/update',   api.update);
 app.post('/api/add_user',    api.addUser);
-
+app.post('/api/add_user_to_group', api.addUserToGroup);
 // redirect all others to the index (HTML5 history)
 
 //May not be needed
@@ -413,7 +416,7 @@ function nightlyUpdate(){
 	};
 	
 	db.history.update(
-	    {uID: result._id},
+	    {atc: result.atc},
 	    {$push: {records: obj}},
 	    {multi: false},
 	    function(err, thing){});

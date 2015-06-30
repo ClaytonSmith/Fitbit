@@ -1,5 +1,5 @@
 {
-    "FITBIT_KEY":     "075f8855a5a67c2603fc2109d978746e",
-    "FITBIT_SECRET":  "13cbe3e4a8bb8c9051a305fede2f4fbb",
+    "FITBIT_KEY":     "d459ddd847ca2e74c8d10b7c05b5e274",
+    "FITBIT_SECRET":  "213521ab8bb517333a1b3ff68d85c1c6",
     "mongo_link":     "mongodb://admin:cloudlock11@ds034878.mongolab.com:34878/fitbit-cloudlock"      
 }
