@@ -13,23 +13,38 @@
   <canvas style="margin: 0 0 0 1em" id="line" class="chart chart-line"  legend="true" data="graphDataSet" labels="graphLabels" series="graphSeries" ></canvas>
 </div>
 
-<hr>
+
+ <hr>
 <div class="pure-g" id="groups">
   <div class="pure-u-5-5"><h1 class="center">Groups</h1></div>
   <div class="pure-u-1-2">
+
     <div class="pure-menu custom-restricted-width group-list">
       <span class="pure-menu-heading">Unassigned Users</span>
       <br>
       <ul class="pure-menu-list" ng-repeat="user in unassignedUsers">
         <li class="pure-menu-item">
-          <button>
+          <button ng-click="openModal(user)">
             {{user.displayName}}
           </button>
         </li>
     </div>
+
   </div>
+
   <div class="pure-u-1-2">
-    <h2 class="center">User Groups</h2>
-    <p class="center">Also coming soon</p>
+
+    <div class="pure-menu custom-restricted-width group-list">
+      <span class="pure-menu-heading center">Groups (temp layout)</span>
+      <br>
+      <ul class="pure-menu-list" ng-repeat="user in assignedUsers">
+        <li class="pure-menu-item">
+          <button class="center" ng-click="openModal(user)">
+            {{user.group}}: {{user.displayName}}
+          </button>
+        </li>
+    </div>
+
   </div>
+
 </div>

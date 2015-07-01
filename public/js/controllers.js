@@ -18,7 +18,6 @@ function include(arr,obj) {
 }
 
 
-
 /******** CONTROLLERS ********/
 function appCtrl($scope, $http, $location, $rootScope){
     console.log('Hello from app controller.');
@@ -26,7 +25,7 @@ function appCtrl($scope, $http, $location, $rootScope){
 
 
 /* Controllers */
-function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo){
+function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyModal){
     $rootScope.appData = getInfo.getData();
     console.log("Hello from map controller.", $rootScope.appData);
     
@@ -36,6 +35,8 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo){
     var endDest   = {lat: 37.7924224, lng: -122.3931885}; // Salesforce HQ
     
     $scope.gotStuff = false;
+    $scope.modal = {};
+    $scope.groups = {};
     
     function randomColor(seed){
 	var letters = '0123456789ABCDEF'.split('');
@@ -45,6 +46,36 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo){
 	}
 	return color;
     }
+
+    $scope.openModal = function(user) {
+        $scope.modal.user = user;
+        console.log(user);
+        $fancyModal.open({
+            template:     '<div style="height: 100px"><div class="center">What group would you like to add {{modal.user.displayName}} to?</div>'+
+                '<br><input style="width: 60%; margin-left: 85px;" type="text" ng-model="groupName"></input>'+
+                '<br><div style="float: right;"><br>'+
+                '<button class="pure-button button-warning" ng-click="closeModal()" style="margin-right: 20px;">Cancel</button>'+
+                '<button class="button-success pure-button" ng-click="addUserToGroup(modal.user, groupName)">Add</button></div></div>',
+            scope: $scope
+        });
+    };
+
+    $scope.addUserToGroup = function(user, groupName){
+
+        var groupData = {user: user, groupName: groupName};
+        console.log('adding user to group', groupData);
+        $fancyModal.close();
+        
+        $http.post('/api/add_user_to_group', groupData )
+            .success(function(data){
+                
+                update();
+            });
+    }
+    
+    $scope.closeModal = function(user) {
+        $fancyModal.close();
+    };
     
     var totalDistance = 0;
     $scope.graphLabels  = Array.apply(null, {length: ($rootScope.appData.trackerInfo.endTime.getHours() 
@@ -68,49 +99,64 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo){
     $scope.userData = [];
     
     function update(){
-        $http.get('api/update')
-	    .success(function(data, status, headers, config) {
-                $scope.paths        = {};
-                $scope.markers      = {};
-                
-		$scope.userData = $filter('orderBy')(data, '-distance');
+        $http.get('api/info').then(function(info){
+            console.log( $rootScope.appData, info.data);
 
-                console.log('last update index', calcLastUpdateIndex());
-		console.log("Fitbit users added to dataset.", $scope.userData);
-		
-		$scope.userData.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
-		totalDistance = $scope.userData.reduce(function(a,b){ return a + b.distance; }, 0) * 1.60934 ;
-		console.log("Users assigned color", $scope.userData);
+            // refresh client if UI update
+            if( $rootScope.appData.clientVersion < info.data.clientVersion ){
+                location.reload();
+            }
+            
+        }).then(function(thing){
+            
+            $http.get('api/update')
+	        .success(function(data, status, headers, config) {
+                    $scope.paths        = {};
+                    $scope.markers      = {};
+                    
+		    $scope.userData = $filter('orderBy')(data, '-distance');
 
-		// adds a path field to userData
-		$scope.userData = calcPaths($scope.userData);
-		createPaths($scope.userData);
-		console.log("Paths added");
-		
-		var calculatedDist = getDistanceFromLatLonInM($scope.userData[$scope.userData.length - 1].path.start.lat,
-                                                              $scope.userData[$scope.userData.length - 1].path.end.lng,
-                                                              startDest.lat, startDest.lng);
-		
-		console.log('DISTACNE', totalDistance, calculatedDist);
-		
-		$scope.percentageValue = calculatedDist / getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
-		
-		var centerCoords       =  getMidpoint($scope.userData[$scope.userData.length - 1].path.start, $scope.userData[0].path.end);
-		
-		$scope.center.lat      =  centerCoords.lat;
-		$scope.center.lng      =  centerCoords.lng;
-		
-		$scope.graphSeries     = $scope.userData.map(function(obj){return obj.displayName; });
-                $scope.graphDataSet    = $scope.userData.map(function(obj){return !obj.distance ? [] : obj.distances.splice(0, calcLastUpdateIndex() + 1) });
+                    console.log('last update index', calcLastUpdateIndex());
+		    console.log("Fitbit users added to dataset.", $scope.userData);
+		    
+		    $scope.userData.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
+		    totalDistance = $scope.userData.reduce(function(a,b){ return a + b.distance; }, 0) * 1.60934 ;
+		    console.log("Users assigned color", $scope.userData);
+
+		    // adds a path field to userData
+		    $scope.userData = calcPaths($scope.userData);
+		    createPaths($scope.userData);
+		    console.log("Paths added");
+		    
+		    var calculatedDist = getDistanceFromLatLonInM($scope.userData[$scope.userData.length - 1].path.start.lat,
+                                                                  $scope.userData[$scope.userData.length - 1].path.end.lng,
+                                                                  startDest.lat, startDest.lng);
+		    
+		    console.log('DISTACNE', totalDistance, calculatedDist);
+		    
+		    $scope.percentageValue = calculatedDist / getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
+		    
+		    var centerCoords       =  getMidpoint($scope.userData[$scope.userData.length - 1].path.start, $scope.userData[0].path.end);
+		    
+		    $scope.center.lat      =  centerCoords.lat;
+		    $scope.center.lng      =  centerCoords.lng;
+		    
+		    $scope.graphSeries     = $scope.userData.map(function(obj){return obj.displayName; });
+                    $scope.graphDataSet    = $scope.userData.map(function(obj){return !obj.distance ? [] : obj.distances.splice(0, calcLastUpdateIndex() + 1) });
 
 
-                $scope.unassignedUsers = $scope.userData.filter(function(obj){return obj.group ? false : true });
-                console.log($scope.graphDataSet);
+                    $scope.unassignedUsers = $scope.userData.filter(function(obj){return obj.group ? false : true });
 
-                console.log( $scope.unassignedUsers );
-            }).error(function(data){
-                console.log('Unable to get data', data); // Cry
-	    });
+                    $scope.assignedUsers = $scope.userData.filter(function(obj){return obj.group ? true  : false }).map(
+                    
+
+                    console.log($scope.graphDataSet);
+
+                    console.log( $scope.unassignedUsers );
+                }).error(function(data){
+                    console.log('Unable to get data', data); // Cry
+	        });
+        });
     }
     
     
@@ -302,5 +348,13 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo){
 
 }
 
-mapCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter', 'getInfo'];
-appCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope'];
+function groupModalCtrl($scope, $http, $location, $rootScope, $filter, $fancyModal){
+    $scope.openModel = function() {
+        $fancyModal.open();
+    };
+}
+
+groupModalCtrl.$inject = ['$scope', '$http', '$location', '$rootScope', '$filter',  '$fancyModal'];
+
+mapCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter', 'getInfo',  '$fancyModal'];
+appCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter'];

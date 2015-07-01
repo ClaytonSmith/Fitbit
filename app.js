@@ -33,21 +33,15 @@ var frequency             = 15,
 
 var appData  = {
     serverVersion: 1.01,
-    clientVersion: 1.0,
+    clientVersion: 1.51,
     trackerInfo: {
         startTime:  new Date((new Date()).getUTCFullYear(), (new Date()).getUTCMonth(), (new Date()).getUTCDate(), /*START*/ 5, 0, 0, 0),
 	endTime:    new Date((new Date()).getUTCFullYear(), (new Date()).getUTCMonth(), (new Date()).getUTCDate(), /*END*/   19, 0, 0, 0)
     }
 }
 
-
-
-api.locals = appData
+api.locals = appData;
 app.locals(appData);
-console.log(appData.trackerInfo.startTime);
-console.log(api.locals.trackerInfo.startTime);
-
-
 
 var cronJobs = [
     {
@@ -405,19 +399,23 @@ function nightlyUpdate(){
     
     var date = Date((new Date()).getUTCFullYear(), (new Date()).getUTCMonth(), (new Date()).getUTCDate(), 0, 0, 0, 0)
     var scribe = {};
-    
-    db.users.find({}).toArray(function(err, result){
+
+    console.log('Doing nightly recording');
+
+    db.users.find({}).toArray(function(err, results){
         results.forEach( function(obj){
             db.history.update(
-	        {atc: result.atc},
+	        {atc: obj.atc},
 	        {$push: {
                     records: {
                         date: date,
-	                distance:  result.distance,
-	                distances: result.distances,
+	                distance:  obj.distance,
+	                distances: obj.distances,
                         settings: appData}}},
 	        {multi: false},
-	        function(err, thing){});
+	        function(err, thing){
+                    console.log(err, thing);
+                });
         });
     });
 }
@@ -432,7 +430,8 @@ function morningReset(){
 						  - appData.trackerInfo.startTime.getHours()) *4)).map(function(el){return null;})
 	}},
 	{multi: true},
-	function(err, obj){ 
+	function(err, obj){
+            io.emit('db_update', {message: 'All data user data hass been reset. Please update yourself.'});
 	    console.log(err, obj);
 	}
     );
@@ -464,3 +463,4 @@ var io = require('socket.io').listen(
 http.createServer(redirect).listen(redirect.get('port'), function () {
     console.log('Express server listening on port ' + redirect.get('port'));
 });
+

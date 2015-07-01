@@ -12,17 +12,20 @@ var app = angular.module('myApp', [
     'leaflet-directive',
     'chart.js',
     'isteven-omni-bar',
-    'myModal'
+    'vesparny.fancyModal'
 ]);
 
 // Configure angular client side routing
-app.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
-    $routeProvider.when('/home',     {templateUrl: 'partials/home',
-				      controller: mapCtrl,
-				      resolve: ['getInfo', function(getInfo){	
-					  return getInfo.promise;
-				      }]
-				     });
+app.config(['$routeProvider', '$locationProvider', '$fancyModalProvider', function($routeProvider, $locationProvider, $fancyModalProvider) {
+    $routeProvider.when('/home',
+                        {templateUrl: 'partials/home', controller: mapCtrl,
+			 resolve: ['getInfo', function(getInfo){	
+			     return getInfo.promise;
+			 }]});
+    
+    $fancyModalProvider.setDefaults({
+        template: '<div>I\'m a basic template</div>'
+    });
     
     //	//Default path
     $routeProvider.otherwise({redirectTo: '/home'});

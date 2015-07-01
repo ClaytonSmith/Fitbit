@@ -29,7 +29,8 @@
     "pure": "~0.6.0",
     "angular-omni-bar": "~1.0.1",
     "angular-chart.js": "~0.7.1",
-    "jquery": "~2.1.4"
+    "jquery": "~2.1.4",
+    "angular-fancy-modal": "~0.1.4"
   },
   "resolutions": {
     "d3": "~3.5.5",
