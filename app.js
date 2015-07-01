@@ -43,6 +43,9 @@ var appData  = {
 api.locals = appData;
 app.locals(appData);
 
+
+// http://cssdeck.com/labs/content-accordion-in-pure-css3
+
 var cronJobs = [
     {
         name: "Quarter hour update",

@@ -147,11 +147,11 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
 
                     $scope.unassignedUsers = $scope.userData.filter(function(obj){return obj.group ? false : true });
 
-                    $scope.assignedUsers = $scope.userData.filter(function(obj){return obj.group ? true  : false }).map(
+                    $scope.assignedUsers = $scope.userData.filter(function(obj){return obj.group ? true  : false });
                     
 
                     console.log($scope.graphDataSet);
-
+                    
                     console.log( $scope.unassignedUsers );
                 }).error(function(data){
                     console.log('Unable to get data', data); // Cry
