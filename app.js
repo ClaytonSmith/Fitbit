@@ -403,26 +403,25 @@ function updateDB() {
 
 function nightlyUpdate(){
     
-    var dat = Date((new Date()).getUTCFullYear(), (new Date()).getUTCMonth(), (new Date()).getUTCDate(), 0, 0, 0, 0)
-    var obj = {};
-
+    var date = Date((new Date()).getUTCFullYear(), (new Date()).getUTCMonth(), (new Date()).getUTCDate(), 0, 0, 0, 0)
+    var scribe = {};
+    
     db.users.find({}).toArray(function(err, result){
-	
-	if(!result) return ;
-	
-	obj[date] = {
-	    distance:  result.distance,
-	    distances: result.distances
-	};
-	
-	db.history.update(
-	    {atc: result.atc},
-	    {$push: {records: obj}},
-	    {multi: false},
-	    function(err, thing){});
+        results.forEach( function(obj){
+            db.history.update(
+	        {atc: result.atc},
+	        {$push: {
+                    records: {
+                        date: date,
+	                distance:  result.distance,
+	                distances: result.distances,
+                        settings: appData}}},
+	        {multi: false},
+	        function(err, thing){});
+        });
     });
-};
-
+}
+                              
 function morningReset(){
     
     db.users.update(

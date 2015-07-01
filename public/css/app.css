@@ -54,9 +54,7 @@ canvas{
 }
 
 .group-button{
-    height: 35px;
-    width: 186px;
-    vertical-align: 50%;    
+
 }
 
 .nav{
@@ -73,28 +71,41 @@ canvas{
   margin:10px;
 }
 
+.group-list{
+    width: 400px;
+    margin: 0 0 3em 0;
+    margin-left: auto ;
+    margin-right: auto ;
+}
+
 .group-list ul {
   list-style:none;
 }
 
 .group-list ul li {
   text-indent:10px;
+  margin: 0;
 }
 
 .group-list ul #last {
-  border-radius: 0 0 5px 5px;
+  border-radius: 1px 0 1px 0;
 }
 
 .group-list ul li button {
   display:block;
   padding: 5px 10px;
-  font-size:14px;
   font-family: 'Strait', sans-serif;
-  font-size:13px;
-  text-decoration:none;
+  font-size: 14px;
+  text-decoration: none;
   text-shadow: 1px 1px 1px #fff;
+  box-shadow: inset 0 1px 1px #fff;
+  border-style: none;
+  background: #ffffff;
+  
 
-  box-shadow:inset 0 1px 1px #fff;
+  border-bottom: 1px solid black;
+  height: 35px;
+  width: 186px;
 }
 
 .group-list ul li img {
@@ -102,6 +113,11 @@ canvas{
   margin:-2px 0 0 0;
 }
 
-.group-list ul li:hover {
-  background-color:rgba(0,0,0,0.02);
+
+.group-list ul li button:hover {
+  background-color:rgba(0,0,0,0.08);
+}
+
+.group-list ul li button:active{
+    border-type: none;
 }
