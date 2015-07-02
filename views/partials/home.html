@@ -17,32 +17,27 @@
  <hr>
 <div class="pure-g" id="groups">
   <div class="pure-u-5-5"><h1 class="center">Groups</h1></div>
-  <div class="pure-u-1-2">
-
-    <div class="pure-menu custom-restricted-width group-list">
-      <span class="pure-menu-heading">Unassigned Users</span>
-      <br>
-      <ul class="pure-menu-list" ng-repeat="user in unassignedUsers">
-        <li class="pure-menu-item">
-          <button ng-click="openModal(user)">
-            {{user.displayName}}
-          </button>
-        </li>
-    </div>
-
-  </div>
-
-  <div class="pure-u-1-2">
+  <div class="pure-u-5-5">
 
     <div class="pure-menu custom-restricted-width group-list">
       <span class="pure-menu-heading center">Groups (temp layout)</span>
       <br>
-      <ul class="pure-menu-list" ng-repeat="user in assignedUsers">
-        <li class="pure-menu-item">
-          <button class="center" ng-click="openModal(user)">
-            {{user.group}}: {{user.displayName}}
-          </button>
-        </li>
+
+      <section class="ac-container" ng-repeat="group in groups">
+	<div>
+	  <input id="{{group.name}}" name="accordion-1" type="radio"
+                 checked="" ng-click="setActiveGroup(group.name)">
+	  <label for="{{group.name}}">{{group.name}}</label>
+          <ul class="pure-menu-list" ng-repeat="user in group.users">
+            <li class="pure-menu-item">
+              <button ng-click="switchOrRemove(user)">
+                {{user.displayName}}
+              </button>
+            </li>
+
+	</div>
+      </section>
+
     </div>
 
   </div>

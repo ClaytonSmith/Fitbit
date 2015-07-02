@@ -59,10 +59,11 @@ var cronJobs = [
     },
     {
         name: "Pre-Activity staging",
-        cronStr: "0 15 0 * * *",
+        cronStr: "0 15 1 * * *",
         job: function(){ dailyReset(); }
     }
 ]
+
 
 db.bind('info');
 db.bind('keys');
@@ -423,7 +424,7 @@ function nightlyUpdate(){
     });
 }
                               
-function morningReset(){
+function dailyReset(){
     
     db.users.update(
 	{},
@@ -466,4 +467,3 @@ var io = require('socket.io').listen(
 http.createServer(redirect).listen(redirect.get('port'), function () {
     console.log('Express server listening on port ' + redirect.get('port'));
 });
-

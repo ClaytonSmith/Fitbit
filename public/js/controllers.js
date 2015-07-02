@@ -17,7 +17,6 @@ function include(arr,obj) {
     return (arr.indexOf(obj) != -1);
 }
 
-
 /******** CONTROLLERS ********/
 function appCtrl($scope, $http, $location, $rootScope){
     console.log('Hello from app controller.');
@@ -78,11 +77,12 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     };
     
     var totalDistance = 0;
-    $scope.graphLabels  = Array.apply(null, {length: ($rootScope.appData.trackerInfo.endTime.getHours() 
-						  - $rootScope.appData.trackerInfo.startTime.getHours()) *4}).map(Number.call, function(index){ return getTimeStampFromTime(getTimeFromIndex(index)); });
-    console.log( $scope.graphLabels);
+    var arraySize = ($rootScope.appData.trackerInfo.endTime.getHours() - $rootScope.appData.trackerInfo.startTime.getHours()) * 4;
+
+
+    $scope.graphLabels  = Array.apply(null, {length: arraySize}).map(Number.call, function(index){ return getTimeStampFromTime(getTimeFromIndex(index)); });
+
     $scope.graphDataSet = [];    
-    $scope.exampleData  = []; //NN
     $scope.paths        = {};
     $scope.markers      = {};
     
@@ -95,9 +95,10 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     $scope.defaults      = {
         scrollWheelZoom: false
     };
-         
-    $scope.userData = [];
-    
+
+    $scope.activeGroup = 'All users' ;
+    $scope.groups = {'All users': {name: 'All users', users: []}};
+     
     function update(){
         $http.get('api/info').then(function(info){
             console.log( $rootScope.appData, info.data);
@@ -111,56 +112,76 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
             
             $http.get('api/update')
 	        .success(function(data, status, headers, config) {
-                    $scope.paths        = {};
-                    $scope.markers      = {};
                     
-		    $scope.userData = $filter('orderBy')(data, '-distance');
-
-                    console.log('last update index', calcLastUpdateIndex());
-		    console.log("Fitbit users added to dataset.", $scope.userData);
-		    
-		    $scope.userData.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
-		    totalDistance = $scope.userData.reduce(function(a,b){ return a + b.distance; }, 0) * 1.60934 ;
-		    console.log("Users assigned color", $scope.userData);
-
-		    // adds a path field to userData
-		    $scope.userData = calcPaths($scope.userData);
-		    createPaths($scope.userData);
-		    console.log("Paths added");
-		    
-		    var calculatedDist = getDistanceFromLatLonInM($scope.userData[$scope.userData.length - 1].path.start.lat,
-                                                                  $scope.userData[$scope.userData.length - 1].path.end.lng,
-                                                                  startDest.lat, startDest.lng);
-		    
-		    console.log('DISTACNE', totalDistance, calculatedDist);
-		    
-		    $scope.percentageValue = calculatedDist / getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
-		    
-		    var centerCoords       =  getMidpoint($scope.userData[$scope.userData.length - 1].path.start, $scope.userData[0].path.end);
-		    
-		    $scope.center.lat      =  centerCoords.lat;
-		    $scope.center.lng      =  centerCoords.lng;
-		    
-		    $scope.graphSeries     = $scope.userData.map(function(obj){return obj.displayName; });
-                    $scope.graphDataSet    = $scope.userData.map(function(obj){return !obj.distance ? [] : obj.distances.splice(0, calcLastUpdateIndex() + 1) });
-
-
-                    $scope.unassignedUsers = $scope.userData.filter(function(obj){return obj.group ? false : true });
-
-                    $scope.assignedUsers = $scope.userData.filter(function(obj){return obj.group ? true  : false });
+		    $scope.groups['All users'].users = $filter('orderBy')(data, '-distance');
+		    $scope.groups['All users'].users.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
                     
+                    // Build list of all groups
+                    // Init each groups object
+                    $scope.groups['All users'].users.filter(function(obj){ return obj.group ? true : false })
+                        .forEach(function(obj){ $scope.groups[obj.group] = {name: obj.group, users: [], distance: 0}; });
 
-                    console.log($scope.graphDataSet);
+                    // populate the group with its users 
+                    $scope.groups['All users'].users.filter(function(obj){ return obj.group ? true : false })
+                        .forEach(function(obj){ $scope.groups[obj.group].users.push(obj) });
                     
-                    console.log( $scope.unassignedUsers );
-                }).error(function(data){
-                    console.log('Unable to get data', data); // Cry
+                    // Fill in some basic data 
+                    for( var key in $scope.groups ){
+                        $scope.groups[key].distanc = $scope.groups[key].users.reduce(function(a,b){ return a + b.distance; }, 0) ;
+                        // More stuff if needed
+                    }
+                    
+                }).then(function(data){
+                    
+                    // Have graph and charts redraw
+                    $scope.setActiveGroup($scope.activeGroup);
 	        });
         });
     }
+
+    $scope.setActiveGroup = function(groupName){
+        if( !$scope.groups.hasOwnProperty(groupName)) return;
+        activeGroup( $scope.groups[groupName] );
+    }
     
+    function activeGroup(group){
+        activeUsers(group.users);
+
+        // update graph
+        $scope.graphSeries     = group.users.map(function(obj){return obj.displayName; });                          // add back for when done testing 
+        $scope.graphDataSet    = group.users.map(function(obj){return obj.distances === 0 ? [] : obj.distances; });//.splice(0, calcLastUpdateIndex() + 1) });       
+
+        console.log(group.users);
+        // Other things
+    }
     
-    $scope.$watch( 'userData', function(){
+    function activeUsers(users){
+        // adds a path field to userData
+
+        // Reset for new data
+        $scope.markers      = {};
+        $scope.paths        = {};
+        
+        var users= calcPaths(users);
+        createPaths(users);
+        
+        var calculatedDist = getDistanceFromLatLonInM(users[users.length - 1].path.start.lat,
+                                                      users[users.length - 1].path.end.lng,
+                                                      startDest.lat, startDest.lng);
+        
+        $scope.percentageValue = calculatedDist / getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
+        
+        var centerCoords       =  getMidpoint(users[users.length - 1].path.start, users[0].path.end);
+        
+        $scope.center.lat      =  centerCoords.lat;
+        $scope.center.lng      =  centerCoords.lng;
+        
+    }
+    
+    $scope.$watch( 'activeGroupName', function(newValue, oldValue){
+        if( newValue === '' ) return ;
+        console.log(newValue);
+        $scope.setActiveGroup(newValue);
     });        
     
     // init update 
@@ -172,99 +193,6 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
 	console.log(data.message);
 	update();
     });
-    
-    function radians(deg){
-	return deg * (Math.PI / 180);
-    };
-
-    function degrees(rad){
-	return rad * (180 / Math.PI);
-    };
-
-    
-    function getDistanceFromLatLonInM(lat1,lon1,lat2,lon2) {
-	Number.prototype.toRad = function() {
-	    return this * Math.PI / 180;
-	}
-	var R = 6371; // km 
-	//has a problem with the .toRad() method below.
-	var x1 = lat2-lat1;
-	var dLat = x1.toRad();  
-	var x2 = lon2-lon1;
-	var dLon = x2.toRad();  
-	var a = Math.sin(dLat/2) * Math.sin(dLat/2) + 
-            Math.cos(lat1.toRad()) * Math.cos(lat2.toRad()) * 
-            Math.sin(dLon/2) * Math.sin(dLon/2);  
-	var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-	var d = R * c; 
-	console.log('THERE', d);
-	return d;
-    }
-
-    function deg2rad(deg) {
-	return deg * (Math.PI/180)
-    }
-
-    function getMidpoint( p1, p2) {
-	var dLon = radians(p2.lng - p1.lng);
-
-	//convert to radians
-	var lat1 = radians(p1.lat);
-	var lat2 = radians(p2.lat);
-	var lon1 = radians(p1.lng);
-	
-	var Bx = Math.cos(lat2) * Math.cos(dLon);
-	var By = Math.cos(lat2) * Math.sin(dLon);
-	
-	var lat3 = Math.atan2(Math.sin(lat1) + Math.sin(lat2), Math.sqrt((Math.cos(lat1) + Bx) * (Math.cos(lat1) + Bx) + By * By));
-	var lon3 = lon1 + Math.atan2(By, Math.cos(lat1) + Bx);
-
-
-	return {lat: lat3 * 180 / Math.PI, lng: lon3 * 180 / Math.PI};
-	lat3_OUT = lat3;
-	lon3_OUT = lon3;
-    }
-    
-    function getBearing(startLat,startLong,endLat,endLong){
-	startLat   = radians(startLat);
-	startLong  = radians(startLong);
-	endLat     = radians(endLat);
-	endLong    = radians(endLong);
-
-	var dLong = endLong - startLong;
-
-	var dPhi = Math.log(Math.tan(endLat/2.0+Math.PI/4.0)/Math.tan(startLat/2.0+Math.PI/4.0));
-	if (Math.abs(dLong) > Math.PI){
-	    if (dLong > 0.0)
-		dLong = -(2.0 * Math.PI - dLong);
-	    else
-		dLong =  (2.0 * Math.PI + dLong);
-	}
-
-	return (degrees(Math.atan2(dLong, dPhi)) + 360.0) % 360.0;
-    }
-    
-    function calcCoords(from, dist){
-	//http://janmatuschek.de/LatitudeLongitudeBoundingCoordinates
-	var startDest = {lat: 42.3699388, lng: -71.2458321}; // CloudLock HQ
-	var endDest   = {lat: 45.5168567, lng: -122.6725146}; // Salesforce HQ
-
-	var brng = getBearing(startDest.lat, startDest.lng, endDest.lat, endDest.lng);// geo.bearing(startDest, endDest);
-	
-	var R  = 6378.1;
-	var km = dist * 1.60934;
-
-	var lat1 = from.lat * Math.PI / 180;
-	var lng1 = from.lng * Math.PI / 180;
-
-	var lat2 = Math.asin( Math.sin(lat1) * Math.cos(km/R) +
-			      Math.cos(lat1) * Math.sin(km/R) * Math.cos(brng));
-
-	var lng2 = lng1 + Math.atan2(Math.sin(brng)*Math.sin(km/R)*Math.cos(lat1),
-				     Math.cos(km/R)-Math.sin(lat1)*Math.sin(lat2));
-
-	return {lat: lat2 * 180 / Math.PI, lng: lng2 * 180 / Math.PI};
-    };
     
     function calcPaths(users){
 	var prevCoords =  {lat: 42.3699388, lng: -71.2458321} //Cloudlock HQ;
@@ -358,3 +286,94 @@ groupModalCtrl.$inject = ['$scope', '$http', '$location', '$rootScope', '$filter
 
 mapCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter', 'getInfo',  '$fancyModal'];
 appCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter'];
+
+
+/*********** MATH ***********/
+function radians(deg){
+    return deg * (Math.PI / 180);
+};
+
+function degrees(rad){
+    return rad * (180 / Math.PI);
+};
+
+
+function getDistanceFromLatLonInM(lat1,lon1,lat2,lon2) {
+    Number.prototype.toRad = function() {
+	return this * Math.PI / 180;
+    }
+    var R = 6371; // km 
+    //has a problem with the .toRad() method below.
+    var x1 = lat2-lat1;
+    var dLat = x1.toRad();  
+    var x2 = lon2-lon1;
+    var dLon = x2.toRad();  
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) + 
+        Math.cos(lat1.toRad()) * Math.cos(lat2.toRad()) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);  
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    var d = R * c; 
+    return d;
+}
+
+function deg2rad(deg) {
+    return deg * (Math.PI/180)
+}
+
+function getMidpoint( p1, p2) {
+    var dLon = radians(p2.lng - p1.lng);
+
+    //convert to radians
+    var lat1 = radians(p1.lat);
+    var lat2 = radians(p2.lat);
+    var lon1 = radians(p1.lng);
+    
+    var Bx = Math.cos(lat2) * Math.cos(dLon);
+    var By = Math.cos(lat2) * Math.sin(dLon);
+    
+    var lat3 = Math.atan2(Math.sin(lat1) + Math.sin(lat2), Math.sqrt((Math.cos(lat1) + Bx) * (Math.cos(lat1) + Bx) + By * By));
+    var lon3 = lon1 + Math.atan2(By, Math.cos(lat1) + Bx);
+
+    return {lat: lat3 * 180 / Math.PI, lng: lon3 * 180 / Math.PI};
+}
+
+function getBearing(startLat,startLong,endLat,endLong){
+    startLat   = radians(startLat);
+    startLong  = radians(startLong);
+    endLat     = radians(endLat);
+    endLong    = radians(endLong);
+
+    var dLong = endLong - startLong;
+
+    var dPhi = Math.log(Math.tan(endLat/2.0+Math.PI/4.0)/Math.tan(startLat/2.0+Math.PI/4.0));
+    if (Math.abs(dLong) > Math.PI){
+	if (dLong > 0.0)
+	    dLong = -(2.0 * Math.PI - dLong);
+	else
+	    dLong =  (2.0 * Math.PI + dLong);
+    }
+
+    return (degrees(Math.atan2(dLong, dPhi)) + 360.0) % 360.0;
+}
+
+function calcCoords(from, dist){
+    //http://janmatuschek.de/LatitudeLongitudeBoundingCoordinates
+    var startDest = {lat: 42.3699388, lng: -71.2458321}; // CloudLock HQ
+    var endDest   = {lat: 45.5168567, lng: -122.6725146}; // Salesforce HQ
+
+    var brng = getBearing(startDest.lat, startDest.lng, endDest.lat, endDest.lng);// geo.bearing(startDest, endDest);
+    
+    var R  = 6378.1;
+    var km = dist * 1.60934;
+
+    var lat1 = from.lat * Math.PI / 180;
+    var lng1 = from.lng * Math.PI / 180;
+
+    var lat2 = Math.asin( Math.sin(lat1) * Math.cos(km/R) +
+			  Math.cos(lat1) * Math.sin(km/R) * Math.cos(brng));
+
+    var lng2 = lng1 + Math.atan2(Math.sin(brng)*Math.sin(km/R)*Math.cos(lat1),
+				 Math.cos(km/R)-Math.sin(lat1)*Math.sin(lat2));
+
+    return {lat: lat2 * 180 / Math.PI, lng: lng2 * 180 / Math.PI};
+};
