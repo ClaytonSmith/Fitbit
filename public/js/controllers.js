@@ -127,7 +127,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
                     
                     // Fill in some basic data 
                     for( var key in $scope.groups ){
-                        $scope.groups[key].distanc = $scope.groups[key].users.reduce(function(a,b){ return a + b.distance; }, 0) ;
+                        $scope.groups[key].distance = $scope.groups[key].users.reduce(function(a,b){ return a + b.distance; }, 0) ;
                         // More stuff if needed
                     }
                     
@@ -161,15 +161,16 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
         // Reset for new data
         $scope.markers      = {};
         $scope.paths        = {};
-        
+        $scope.distanceToObjective = getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
         var users= calcPaths(users);
         createPaths(users);
         
         var calculatedDist = getDistanceFromLatLonInM(users[users.length - 1].path.start.lat,
                                                       users[users.length - 1].path.end.lng,
                                                       startDest.lat, startDest.lng);
+
         
-        $scope.percentageValue = calculatedDist / getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
+        $scope.percentageValue = calculatedDist / $scope.distanceToObjective;
         
         var centerCoords       =  getMidpoint(users[users.length - 1].path.start, users[0].path.end);
         
