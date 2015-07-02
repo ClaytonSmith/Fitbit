@@ -22,12 +22,6 @@
     <div class="pure-menu custom-restricted-width group-list">
 
       <br>
-      <!--
-      <section class="ac-container"
-	<div>
-	  <input id="{{group.name}}" name="accordion-1" type="radio" checked=""  ng-click="setActiveGroup(group.name)">
-	  <label for="{{group.name}}">{{group.name}}</label> -->
-
       <div  ng-repeat="group in groups">
         <div class="group-container">
           <span class="pure-menu-heading" ng-click="setActiveGroup(group.name)">{{group.name}}</span>
@@ -51,14 +45,6 @@
           </table>
         </div>
       </div>
-      <!--<ul class="pure-menu-list" ng-repeat="user in group.users">
-          <li class="pure-menu-item">
-            <button ng-click="switchOrRemove(user)">
-                {{user.displayName}}
-            </button>
-          </li>-->
-    </div?
     </div>
   </div>
-
 </div>
