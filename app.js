@@ -174,12 +174,13 @@ app.get("/thankyou", function (req, res) {
 
     console.log('********** Hello!', token, secret, verifier);
     client.getAccessToken(token, secret, verifier).then(function (results) {
-        console.log('test');
+        
         var accessToken = results[0],
-	    accessTokenSecret = results[1],
-	    userId = results[2].encoded_user_id;
+	    accessTokenSecret = results[1];
+        var userId = results[2].encoded_user_id;
 
-        console.log(accessToken, accessTokenSecret, userID);
+        
+
 	routes.index(req, res);
         
 	db.keys.findOne(
