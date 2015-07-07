@@ -1,5 +1,5 @@
 <div class="">
-  <div class="pure-u-1-1 navbar">
+  <div class="pure-u-1-1 navbar" id="anchor-top">
     <a href="http://www.cloudlock.com"><div class="brand"></div></a>
     <a class="join-us" href="/authorize" target="_blank"><button class="pure-button">Join Our Team</button></a>
   </div>
@@ -10,22 +10,59 @@
   <!-- Map Directive-->
   <leaflet class="pure-u-1-1" center="center" paths="paths" markers="markers" defaults="defaults" height="350"></leaflet>
 
-  <canvas style="margin: 0 0 0 1em" id="line" class="chart chart-line"  legend="true" data="graphDataSet" labels="graphLabels" series="graphSeries" ></canvas>
+  <canvas style="margin: 0 0 0 1em" id="line" class="chart chart-line"  legend="true" data="graphDataSet" labels="graphLabels" series="graphSeries"
+options="{
+        scaleShowHorizontalLines: true,
+        scaleShowVerticalLines: false,
+        responsive: true,
+        animation: true,
+        animationSteps: 60,
+        animationEasing: 'easeOutQuart',
+        showScale: true,
+        scaleOverride: false,
+        scaleSteps: null,
+        scaleStepWidth: null,
+        scaleStartValue: null,
+        scaleLineWidth: 1,
+        scaleShowLabels: true,
+        scaleIntegersOnly: true,
+        scaleBeginAtZero: false,
+        scaleFontSize: 12,
+        responsive: false,
+        showTooltips: true,
+        tooltipFontSize: 14,
+        tooltipTitleFontSize: 14,
+        tooltipYPadding: 6,
+        tooltipXPadding: 6,
+        tooltipCaretSize: 8,
+        tooltipCornerRadius: 6,
+        tooltipXOffset: 10,
+
+
+}"
+          colours="colors"
+          ></canvas>
+  <p class="center"><i>NOTE: Inactive users will not be displayed.</i></p>
 </div>
-
-
  <hr>
-<div class="pure-g" id="groups">
-  <div class="pure-u-5-5"><h1 class="center">Groups</h1></div>
-  <div class="pure-u-5-5">
 
-    <div class="pure-menu custom-restricted-width group-list">
+<!--
+ <div class="center">
+
+   <button class="pure-button" ng-click="displayUsers()">Compare users</button>
+   <button class="pure-button" ng-click="displayGroups()">Compare groups</button>
+ </div> -->
+ <div class="pure-g" id="groups">
+  <div class="pure-u-5-5">
+  <p class="center"><i>Click on a users to add them to a group.</i></p>
+    <div class="pure-menu">
 
       <br>
-      <div  ng-repeat="group in groups">
+      <div ng-repeat="group in groups">
         <div class="group-container">
-          <span class="pure-menu-heading" ng-click="setActiveGroup(group.name)">{{group.name}}</span>
-          <table class="pure-table pure-table-horizontal" ng-click="setActiveGroup(group.name)">
+          <h4  ng-click="setActiveGroup(group.name); gotoAnchor('anchor-top')" >{{group.name}}</h4>
+          <!--<span class="pure-menu-heading"></span> -->
+          <table class="pure-table pure-table-horizontal" ng-click="setActiveGroup(group.name); gotoAnchor('anchor-top')">
             <thead>
               <tr>
                 <th>User</th>
@@ -36,7 +73,7 @@
             </thead>
             <tbody ng-repeat="user in group.users">
               <tr ng-click="openModal(user)">
-                <td>{{user.displayName}}</td>
+                <td>{{user.fullName}}</td>
                 <td>{{user.distance}}</td>
                 <td>{{((user.distance / distanceToObjective) * 100).toFixed(2)}}</td>
                 <td>{{((user.distance / group.distance) * 100).toFixed(2)}}</td>

@@ -1,6 +1,13 @@
 'use strict';
 
+
+
+
 // Helper function 
+Array.prototype.insert = function (index, item) {
+    this.splice(index, 0, item);
+};
+
 // Tests to see if an object is empty.
 function isEmptyObject(obj){
     for(var propName in obj){
@@ -29,7 +36,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     console.log("Hello from map controller.", $rootScope.appData);
     
 
-    var cloudLockLogo = "https://pbs.twimg.com/profile_images/517321674471923712/bFqGdWJL_400x400.jpeg";
+    var cloudLockLogo = "http://icons.iconarchive.com/icons/wackypixel/dogs-n-puppies/128/Puppy-1-icon.png";
     var startDest = {lat: 42.3680275, lng: -71.2421328};  // CloudLock HQ
     var endDest   = {lat: 37.7924224, lng: -122.3931885}; // Salesforce HQ
     
@@ -50,7 +57,8 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
         $scope.modal.user = user;
         console.log(user);
         $fancyModal.open({
-            template:     '<div style="height: 100px"><div class="center">What group would you like to add {{modal.user.displayName}} to?</div>'+
+            template:
+            '<div style="height: 100px"><div class="center">What group would you like to add {{modal.user.displayName}} to?</div>'+
                 '<br><input style="width: 60%; margin-left: 85px;" type="text" ng-model="groupName"></input>'+
                 '<br><div style="float: right;"><br>'+
                 '<button class="pure-button button-warning" ng-click="closeModal()" style="margin-right: 20px;">Cancel</button>'+
@@ -67,21 +75,35 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
         
         $http.post('/api/add_user_to_group', groupData )
             .success(function(data){
-                
-                update();
+//                update();
+                console.log('Expecting update req from server. GOODLUCK USER!');
             });
     }
     
     $scope.closeModal = function(user) {
         $fancyModal.close();
     };
-    
+
+
+    $scope.gotoAnchor = function(anchor) {
+        if ($location.hash() !== anchor) {
+            // set the $location.hash to `newHash` and
+            // $anchorScroll will automatically scroll to it
+            $location.hash(anchor);
+        } else {
+            // call $anchorScroll() explicitly,
+            // since $location.hash hasn't changed
+            $anchorScroll();
+        }
+    }
+        
     var totalDistance = 0;
     var arraySize = ($rootScope.appData.trackerInfo.endTime.getHours() - $rootScope.appData.trackerInfo.startTime.getHours()) * 4;
+    var basicArray = Array.apply(null, {length: arraySize}).map(function(el, index){ return null; });
+    
+    $scope.graphLabels  = basicArray.map(Number.call, function(index){ return getTimeStampFromTime(getTimeFromIndex(index)); });
 
-
-    $scope.graphLabels  = Array.apply(null, {length: arraySize}).map(Number.call, function(index){ return getTimeStampFromTime(getTimeFromIndex(index)); });
-
+    $scope.colors       = [];
     $scope.graphDataSet = [];    
     $scope.paths        = {};
     $scope.markers      = {};
@@ -114,8 +136,8 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
 	        .success(function(data, status, headers, config) {
                     
 		    $scope.groups['All users'].users = $filter('orderBy')(data, '-distance');
-		    $scope.groups['All users'].users.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); });
-                    
+		    $scope.groups['All users'].users.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); obj.type = 'USER' });
+
                     // Build list of all groups
                     // Init each groups object
                     $scope.groups['All users'].users.filter(function(obj){ return obj.group ? true : false })
@@ -124,11 +146,12 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
                     // populate the group with its users 
                     $scope.groups['All users'].users.filter(function(obj){ return obj.group ? true : false })
                         .forEach(function(obj){ $scope.groups[obj.group].users.push(obj) });
-                    
+
                     // Fill in some basic data 
                     for( var key in $scope.groups ){
-                        $scope.groups[key].distance = $scope.groups[key].users.reduce(function(a,b){ return a + b.distance; }, 0) ;
-                        // More stuff if needed
+                        $scope.groups[key].distance  = $scope.groups[key].users.reduce(function(a,b){ return a + (b.distance === null? 0 :b.distance); }, 0).toFixed(2);
+                        $scope.groups[key].distances = $scope.groups[key].users.reduce(
+                            function(sum, obj){ return obj.distances.map(function(el,index){return sum[index] +  el; });}, basicArray.map(function(){return 0;}));                        
                     }
                     
                 }).then(function(data){
@@ -142,28 +165,39 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     $scope.setActiveGroup = function(groupName){
         if( !$scope.groups.hasOwnProperty(groupName)) return;
         activeGroup( $scope.groups[groupName] );
+        activeUsers( $scope.groups[groupName].users.filter(function(obj){return obj.distance !== 0 ;}) );
     }
-    
+
+    // adds users to graph 
     function activeGroup(group){
-        activeUsers(group.users);
+        group = JSON.parse(JSON.stringify(group));;
+        var sudoUser = {
+            displayName: group.name,
+            distances: group.distances
+        }
 
+        //        group.users.insert(0, sudoUser);
+        //        console.log(group.users);
+        
         // update graph
-        $scope.graphSeries     = group.users.map(function(obj){return obj.displayName; });                          // add back for when done testing 
-        $scope.graphDataSet    = group.users.map(function(obj){return obj.distances === 0 ? [] : obj.distances; });//.splice(0, calcLastUpdateIndex() + 1) });       
-
-        console.log(group.users);
+        $scope.graphSeries     = group.users.map(function(obj){return obj.displayName; });     
+        $scope.graphDataSet    = group.users.map(function(obj){return obj.distance === 0 ? [] : obj.distances; });  //.splice(0, calcLastUpdateIndex() + 1) });       
+        $scope.colors          = group.users.map(function(obj){return obj.color; });        
         // Other things
     }
-    
+
+    // Adds users to map
     function activeUsers(users){
         // adds a path field to userData
 
-        // Reset for new data
+
         $scope.markers      = {};
         $scope.paths        = {};
-        $scope.distanceToObjective = getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
-        var users= calcPaths(users);
+
+        users = calcPaths(users);
         createPaths(users);
+       
+        $scope.distanceToObjective = getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
         
         var calculatedDist = getDistanceFromLatLonInM(users[users.length - 1].path.start.lat,
                                                       users[users.length - 1].path.end.lng,
@@ -206,7 +240,8 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     }
     
     function createPaths(users){
-	
+
+        console.log(users);
 	users.forEach( function(user){
 	    $scope.paths[user.color]= {    
 		color: user.color,

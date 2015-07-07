@@ -72,7 +72,7 @@ canvas{
 }
 
 .group-list{
-    width: 400px;
+    width: 800px;
     margin: 0 0 3em 0;
     margin-left: auto ;
     margin-right: auto ;
@@ -259,4 +259,8 @@ canvas{
 
 .ac-container input:checked ~ article.ac-large {
     height: 100%;
+}
+
+.pure-table {
+    width: 600px;
 }

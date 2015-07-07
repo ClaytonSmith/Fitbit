@@ -38,21 +38,10 @@ exports.addUserToGroup = function(req, res, next){
                         function(err, obj){
                             console.log(err, obj);
                             res.send({message: 'User added to group. Go team'});
+                            exports.sendUpdate();
                         });   
 }
 
-exports.addUser = function(req, res, next){      
+exports.getHistory = function(req, res, next){      
     console.log('User is being added.');
-    
-    // TODO: refine thing
-    req.db.keys.insert( req.body, { w: 0 });
-    
-    
-    // Get user data 
-    // update db  
-    req.db.users.insert( pullFitbitData(userData), { w: 0 });    
-    
-
-    // Send user their data
-    res.json( { success: 'user added'} );	    	    
 } 
