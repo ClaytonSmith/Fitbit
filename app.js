@@ -29,7 +29,7 @@ var mongo                 = require('mongoskin'),
 
 var appData  = {
     serverVersion: 1.01,
-    clientVersion: 1.6,
+    clientVersion: 1.7,
     trackerInfo: {
         startTime:  new Date((new Date()).getUTCFullYear(), (new Date()).getUTCMonth(), (new Date()).getUTCDate(), /*START*/ 5, 0, 0, 0),
 	endTime:    new Date((new Date()).getUTCFullYear(), (new Date()).getUTCMonth(), (new Date()).getUTCDate(), /*END*/   19, 0, 0, 0)
