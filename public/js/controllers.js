@@ -45,10 +45,12 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     $scope.groups = {};
     
     function randomColor(seed){
-	var letters = '0123456789ABCDEF'.split('');
+        var factory = new Math.seedrandom(seed);
+        var letters = '0123456789ABCDEF'.split('');
 	var color = '#';
+        
 	for (var i = 0; i < 6; i++ ) {   
-	    color += letters[Math.floor((seed = Math.random(seed)) * 16)]; // Sooooo goood
+	    color += letters[Math.floor(factory() * 16)]; // Sooooo goood
 	}
 	return color;
     }
@@ -75,7 +77,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
         
         $http.post('/api/add_user_to_group', groupData )
             .success(function(data){
-//                update();
+                //                update();
                 console.log('Expecting update req from server. GOODLUCK USER!');
             });
     }
@@ -134,9 +136,12 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
             
             $http.get('api/update')
 	        .success(function(data, status, headers, config) {
+
                     
 		    $scope.groups['All users'].users = $filter('orderBy')(data, '-distance');
-		    $scope.groups['All users'].users.map(function(obj){ obj.color = randomColor(obj.name + obj.avatar); obj.type = 'USER' });
+                    $rootScope.allUsers =  (JSON.parse(JSON.stringify($filter('orderBy')(data, '-fullName'))));
+
+                    $scope.groups['All users'].users.forEach(function(obj){ obj.color = ( obj.color ? obj.color : (randomColor(obj.fullName))); obj.type = 'USER'; });
 
                     // Build list of all groups
                     // Init each groups object
@@ -318,8 +323,52 @@ function groupModalCtrl($scope, $http, $location, $rootScope, $filter, $fancyMod
     };
 }
 
-groupModalCtrl.$inject = ['$scope', '$http', '$location', '$rootScope', '$filter',  '$fancyModal'];
+function settingsCtrl($scope, $http, $location, $rootScope, $filter, $fancyModal){
 
+
+    // If no data, go home
+    if( !$rootScope.allUsers )
+        $location.path('/home');
+    $scope.modal = {}
+
+    $scope.closeModal = function(user) {
+        $fancyModal.close();
+    };
+
+    $scope.reload = function(){
+        location.reload();
+    };
+    
+    $scope.updateUser = function(data){
+        var userUpdate = {groupName: data.group, user: data.user, color: data.color};
+        data.user.color = data.color;
+        data.user.group = data.group;
+
+
+        console.log('Updating user', userUpdate, data);
+
+        $fancyModal.close();
+        
+        $http.post('/api/update_user_info', userUpdate )
+            .success(function(data){
+                //                update();
+                console.log('Expecting update req from server. GOODLUCK USER!');
+            }); 
+    }
+    
+    $scope.openModal = function(user) {
+        $scope.modal.user = user;
+        console.log(user);
+        $fancyModal.open({
+            templateUrl: 'partials/edditUserSettings.html',
+            scope: $scope
+        });
+    }
+}
+
+
+groupModalCtrl.$inject = ['$scope', '$http', '$location', '$rootScope', '$filter',  '$fancyModal'];
+settingsCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter', '$fancyModal'];
 mapCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter', 'getInfo',  '$fancyModal'];
 appCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter'];
 

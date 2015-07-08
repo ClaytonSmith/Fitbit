@@ -30,7 +30,7 @@ exports.info = function(req, res, next){
 
 exports.addUserToGroup = function(req, res, next){      
 
-    console.log( 'adding user to group', req.body );
+    console.log( 'adding user to group', req.body.group );
 
     req.db.users.update({atc: req.body.user.atc},
                         {$set: {group: req.body.groupName}},
@@ -41,6 +41,24 @@ exports.addUserToGroup = function(req, res, next){
                             exports.sendUpdate();
                         });   
 }
+
+exports.updateUserInfo = function(req, res, next){      
+
+    console.log( 'Updating user color',  req.body);
+    
+    req.db.users.update({atc: req.body.user.atc},
+                        { $set: {
+                            color: req.body.color,
+                            group: req.body.groupName
+                        }},
+                        {multi: true},
+                        function(err, obj){
+                            console.log(err, obj);
+                            res.send({message: 'User changed color'});
+                            //exports.sendUpdate();
+                        });   
+}
+
 
 exports.getHistory = function(req, res, next){      
     console.log('User is being added.');

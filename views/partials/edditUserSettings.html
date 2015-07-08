@@ -1,0 +1,35 @@
+<div style="height: 480px;">
+  <div>
+    <h3>Edit {{modal.user.displayName}}'s info</h3>
+    <table class="pure-table settings-table pure-table-horizontal">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Group</th>
+          <th>Display Color</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{modal.user.fullName}}</td>
+          <td>{{modal.group}}</td>
+          <td class="hex-color center" style="background: {{modal.color}};" >{{modal.color || "Default color not set"}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <br>
+  <label style="width: 50px;" for="name">Group:</label>
+  <input id="name" type="text" ng-model="modal.group" ng-init="modal.group = modal.user.group">
+  <br>
+  <label style="width: 50px;" for="color">Color:</label>
+  <input id="color" type="text" ng-model="modal.color" ng-init="modal.color = modal.user.color">
+  <color-picker style="margin-top: 7px;" ng-model="modal.color" ng-init="modal.color = modal.user.color"></color-picker>
+
+  <br>
+  <div style="float: right;"><br>
+    <button class="pure-button button-warning" ng-click="closeModal()" style="margin-right: 20px;">Cancel</button>
+    <button class="button-success pure-button" ng-click="updateUser(modal)">Save</button>
+  </div>
+</div>
