@@ -169,11 +169,10 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
 
         // TODO: DAYS
         $scope.stats.days = 'today'
-        $scope.stats.totalDistance      = $scope.groups['All users'].users.reduce(function(sum, obj){ return sum + obj.distance }, 0); 
+        $scope.stats.totalDistance      = $scope.groups['All users'].users.reduce(function(sum, obj){ return sum + obj.distance }, 0).toFixed(2); 
         $scope.stats.totalUsers         = $scope.groups['All users'].users.length;
         $scope.stats.averageDist        = ($scope.stats.totalDistance / $scope.stats.totalUsers).toFixed(2);
-        $scope.stats.averageActiveDist  = ($scope.stats.totalDistance
-                                           /$scope.groups['All users'].users.filter(function(obj){return obj.distance ;}).length).toFixed(2);
+        $scope.stats.averageActiveDist  = ($scope.stats.totalDistance / $scope.groups['All users'].users.filter(function(obj){return obj.distance ;}).length).toFixed(2);
     }
     
     $scope.setActiveGroup = function(groupName){
