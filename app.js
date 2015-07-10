@@ -281,7 +281,7 @@ app.get('/partials/:name', routes.partial );
 // EXPRESS API
 app.get('/api/info',               api.info);
 app.get('/api/update',             api.update);
-app.get('/api/get_history',        api.getHistory);
+app.get('/api/get_hi story',        api.getHistory);
 app.post('/api/add_user_to_group', api.addUserToGroup);
 app.post('/api/update_user_info',  api.updateUserInfo);
 // redirect all others to the index (HTML5 history)

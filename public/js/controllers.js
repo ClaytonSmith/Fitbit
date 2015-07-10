@@ -29,9 +29,7 @@ function appCtrl($scope, $http, $location, $rootScope){
 
 /* Controllers */
 function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyModal){
-    $rootScope.appData = getInfo.getData();
-    console.log("Hello from map controller.", $rootScope.appData);
-    
+    $rootScope.appData = getInfo.getData();    
 
     var cloudLockLogo = "http://icons.iconarchive.com/icons/wackypixel/dogs-n-puppies/128/Puppy-1-icon.png";
     var startDest = {lat: 42.3680275, lng: -71.2421328};  // CloudLock HQ
@@ -41,64 +39,9 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     $scope.modal = {};
     $scope.groups = {};
     
-    function randomColor(seed){
-        var factory = new Math.seedrandom(seed);
-        var letters = '0123456789ABCDEF'.split('');
-	var color = '#';
         
-	for (var i = 0; i < 6; i++ ) {   
-	    color += letters[Math.floor(factory() * 16)]; // Sooooo goood
-	}
-	return color;
-    }
-
-    $scope.openModal = function(user) {
-        $scope.modal.user = user;
-        console.log(user);
-        $fancyModal.open({
-            template:
-            '<div style="height: 100px"><div class="center">What group would you like to add {{modal.user.displayName}} to?</div>'+
-                '<br><input style="width: 60%; margin-left: 85px;" type="text" ng-model="groupName"></input>'+
-                '<br><div style="float: right;"><br>'+
-                '<button class="pure-button button-warning" ng-click="closeModal()" style="margin-right: 20px;">Cancel</button>'+
-                '<button class="button-success pure-button" ng-click="addUserToGroup(modal.user, groupName)">Add</button></div></div>',
-            scope: $scope
-        });
-    };
-
-    $scope.addUserToGroup = function(user, groupName){
-
-        var groupData = {user: user, groupName: groupName};
-        console.log('adding user to group', groupData);
-        $fancyModal.close();
-        
-        $http.post('/api/add_user_to_group', groupData )
-            .success(function(data){
-                //                update();
-                console.log('Expecting update req from server. GOODLUCK USER!');
-            });
-    }
-    
-    $scope.closeModal = function(user) {
-        $fancyModal.close();
-    };
-
-
-    $scope.gotoAnchor = function(anchor) {
-        if ($location.hash() !== anchor) {
-            // set the $location.hash to `newHash` and
-            // $anchorScroll will automatically scroll to it
-            $location.hash(anchor);
-        } else {
-            // call $anchorScroll() explicitly,
-            // since $location.hash hasn't changed
-            $anchorScroll();
-        }
-    }
-        
-    var totalDistance = 0;
-    var arraySize = ($rootScope.appData.trackerInfo.endTime.getHours() - $rootScope.appData.trackerInfo.startTime.getHours()) * 4;
-    var basicArray = Array.apply(null, {length: arraySize}).map(function(el, index){ return null; });
+    var arraySize       = ($rootScope.appData.trackerInfo.endTime.getHours() - $rootScope.appData.trackerInfo.startTime.getHours()) * 4;
+    var basicArray      = Array.apply(null, {length: arraySize}).map(function(el, index){ return null; });
     
     $scope.graphLabels  = basicArray.map(Number.call, function(index){ return getTimeStampFromTime(getTimeFromIndex(index)); });
 
@@ -116,51 +59,55 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     $scope.defaults      = {
         scrollWheelZoom: false
     };
-
+    
+    
+    // Init 
     $scope.activeGroup = 'All users' ;
     $scope.groups = {'All users': {name: 'All users', users: []}};
-     
-    function update(){
+
+    getData();
+    
+    function update(data){
+
+	$scope.groups['All users'].users = $filter('orderBy')(data, '-distance');
+        $rootScope.allUsers =  (JSON.parse(JSON.stringify($filter('orderBy')(data, '-fullName'))));
+
+        $scope.groups['All users'].users.forEach(function(obj){ obj.color = ( obj.color ? obj.color : (randomColor(obj.fullName))); obj.type = 'USER'; });
+
+        // Build list of all groups
+        // Init each groups object
+        $scope.groups['All users'].users.filter(function(obj){ return obj.group ? true : false })
+            .forEach(function(obj){ $scope.groups[obj.group] = {name: obj.group, users: [], distance: 0}; });
+
+        // populate the group with its users 
+        $scope.groups['All users'].users.filter(function(obj){ return obj.group ? true : false })
+            .forEach(function(obj){ $scope.groups[obj.group].users.push(obj) });
+
+        // Fill in some basic data 
+        for( var key in $scope.groups ){
+            $scope.groups[key].distance  = $scope.groups[key].users.reduce(function(a,b){ return a + (b.distance === null? 0 :b.distance); }, 0).toFixed(2);
+            $scope.groups[key].distances = $scope.groups[key].users.reduce(
+                function(sum, obj){ return obj.distances.map(function(el,index){return sum[index] +  el; });}, basicArray.map(function(){return 0;}));                        
+        }
+        
+        // Have graph and charts redraw
+        $scope.setActiveGroup($scope.activeGroup);
+        calcStats();
+    }
+
+    function getData(){
         $http.get('api/info').then(function(info){
             console.log( $rootScope.appData, info.data);
-
             // refresh client if UI update
             if( $rootScope.appData.clientVersion < info.data.clientVersion ){
                 location.reload();
             }
-            
         }).then(function(thing){
             
             $http.get('api/update')
 	        .success(function(data, status, headers, config) {
-
                     
-		    $scope.groups['All users'].users = $filter('orderBy')(data, '-distance');
-                    $rootScope.allUsers =  (JSON.parse(JSON.stringify($filter('orderBy')(data, '-fullName'))));
-
-                    $scope.groups['All users'].users.forEach(function(obj){ obj.color = ( obj.color ? obj.color : (randomColor(obj.fullName))); obj.type = 'USER'; });
-
-                    // Build list of all groups
-                    // Init each groups object
-                    $scope.groups['All users'].users.filter(function(obj){ return obj.group ? true : false })
-                        .forEach(function(obj){ $scope.groups[obj.group] = {name: obj.group, users: [], distance: 0}; });
-
-                    // populate the group with its users 
-                    $scope.groups['All users'].users.filter(function(obj){ return obj.group ? true : false })
-                        .forEach(function(obj){ $scope.groups[obj.group].users.push(obj) });
-
-                    // Fill in some basic data 
-                    for( var key in $scope.groups ){
-                        $scope.groups[key].distance  = $scope.groups[key].users.reduce(function(a,b){ return a + (b.distance === null? 0 :b.distance); }, 0).toFixed(2);
-                        $scope.groups[key].distances = $scope.groups[key].users.reduce(
-                            function(sum, obj){ return obj.distances.map(function(el,index){return sum[index] +  el; });}, basicArray.map(function(){return 0;}));                        
-                    }
-                    
-                }).then(function(data){
-                    
-                    // Have graph and charts redraw
-                    $scope.setActiveGroup($scope.activeGroup);
-                    calcStats();
+                    update(data);
 	        });
         });
     }
@@ -172,7 +119,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
         $scope.stats.totalDistance      = $scope.groups['All users'].users.reduce(function(sum, obj){ return sum + obj.distance }, 0).toFixed(2); 
         $scope.stats.totalUsers         = $scope.groups['All users'].users.length;
         $scope.stats.averageDist        = ($scope.stats.totalDistance / $scope.stats.totalUsers).toFixed(2);
-        $scope.stats.averageActiveDist  = ($scope.stats.totalDistance / $scope.groups['All users'].users.filter(function(obj){return obj.distance ;}).length).toFixed(2);
+        $scope.stats.averageActiveDist  = ($scope.stats.totalDistance                     /$scope.groups['All users'].users.filter(function(obj){return obj.distance ;}).length).toFixed(2);
     }
     
     $scope.setActiveGroup = function(groupName){
@@ -189,8 +136,6 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
             distances: group.distances
         }
 
-        //        group.users.insert(0, sudoUser);
-        //        console.log(group.users);
         
         // update graph
         $scope.graphSeries     = group.users.map(function(obj){return obj.displayName; });     
@@ -202,7 +147,6 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     // Adds users to map
     function activeUsers(users){
         // adds a path field to userData
-
 
         $scope.markers      = {};
         $scope.paths        = {};
@@ -216,14 +160,12 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
                                                       users[users.length - 1].path.end.lng,
                                                       startDest.lat, startDest.lng);
 
-        
         $scope.percentageValue = calculatedDist / $scope.distanceToObjective;
         
         var centerCoords       =  getMidpoint(users[users.length - 1].path.start, users[0].path.end);
         
         $scope.center.lat      =  centerCoords.lat;
-        $scope.center.lng      =  centerCoords.lng;
-        
+        $scope.center.lng      =  centerCoords.lng;    
     }
     
     $scope.$watch( 'activeGroupName', function(newValue, oldValue){
@@ -231,15 +173,12 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
         console.log(newValue);
         $scope.setActiveGroup(newValue);
     });        
-    
-    // init update 
-    update();
-    
+        
     // Listen for server update. Socket.io knows what domain to listen to
     var socket = io('');
     socket.on('db_update', function (data) {
 	console.log(data.message);
-	update();
+	getData();
     });
     
     function calcPaths(users){
@@ -323,6 +262,33 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
 	return getTimeStampFromTime(getTimeFromIndex(calcLastUpdateIndex()));
     }
 
+
+    function randomColor(seed){
+        var factory = new Math.seedrandom(seed);
+        var letters = '0123456789ABCDEF'.split('');
+	var color = '#';
+        
+	for (var i = 0; i < 6; i++ ) {   
+	    color += letters[Math.floor(factory() * 16)]; // Sooooo goood
+	}
+	return color;
+    }
+
+    $scope.gotoAnchor = function(anchor) {
+        if ($location.hash() !== anchor) {
+            // set the $location.hash to `newHash` and
+            // $anchorScroll will automatically scroll to it
+            $location.hash(anchor);
+        } else {
+            // call $anchorScroll() explicitly,
+            // since $location.hash hasn't changed
+            $anchorScroll();
+        }
+    }
+    
+    $scope.$on('$locationChangeStart', function(ev) {
+        ev.preventDefault();
+    });
 }
 
 function groupModalCtrl($scope, $http, $location, $rootScope, $filter, $fancyModal){

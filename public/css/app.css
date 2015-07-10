@@ -98,7 +98,13 @@ canvas{
     margin: 0 0 3em 0;
     margin-left: auto ;
     margin-right: auto ;
+    cursor:pointer;
 }
+
+.group-container table:hover{
+    background: rgba(0,0,0,0.03)
+}
+
 .group-list ul {
   list-style:none;
 }

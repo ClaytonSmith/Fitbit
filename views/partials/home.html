@@ -43,24 +43,19 @@ options="{
   </div>
 </div>
 <hr>
-<!--
- <div class="center">
 
-   <button class="pure-button" ng-click="displayUsers()">Compare users</button>
-   <button class="pure-button" ng-click="displayGroups()">Compare groups</button>
- </div> -->
- <div class="pure-g" id="groups">
+<div class="pure-g" id="groups">
   <div class="pure-u-5-5">
-  <p class="center"><i>Click on a group to view their stats.</i></p>
+    <p class="center"><i>Click on a group to view their stats.</i></p>
 
 
-  <div class="pure-menu">
-    <br>
+    <div class="pure-menu">
+      <br>
       <div ng-repeat="group in groups">
         <div class="group-container">
           <h4  ng-click="setActiveGroup(group.name); gotoAnchor('anchor-top')" >{{group.name}}</h4>
           <!--<span class="pure-menu-heading"></span> -->
-          <table class="pure-table user-table pure-table-horizontal" ng-click="setActiveGroup(group.name)">
+          <table class="pure-table user-table pure-table-horizontal" ng-click="setActiveGroup(group.name); gotoAnchor('anchor-top')">
             <thead>
               <tr>
                 <th>User</th>
