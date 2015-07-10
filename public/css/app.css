@@ -2,6 +2,21 @@
 html, body{
     width: 100%;
 }
+
+* {
+    font-family: "Raleway", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 300;
+}
+
+h4{
+    font-size: 125%;
+    font-weight: 100;
+    line-height: 1.5;
+    margin: 0;
+    color: #666;
+    letter-spacing: 0.05em;
+ 
+}
 .navbar {
     background: #29323d;
     height: 50px;
@@ -277,4 +292,32 @@ canvas{
 label{
     display: inline-block;
     margin-bottom: 10px;
+}
+
+.header {
+    font-family: "Raleway", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    max-width: 768px;
+    margin: 0 auto;
+    padding: 1em;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+    background: #fff;
+    letter-spacing: 0.05em;
+}
+
+.header h1 {
+    font-size: 300%;
+    font-weight: 300;
+}
+.header h2 {
+    font-size: 125%;
+    font-weight: 100;
+    line-height: 1.5;
+    margin: 0;
+    color: #666;
+    letter-spacing: 0.05em;
+}
+
+b {
+    font-weight: 500;
 }

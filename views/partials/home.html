@@ -1,3 +1,5 @@
+<!-- add goal!! -->
+
 <div class="">
   <div class="pure-u-1-1 navbar" id="anchor-top">
     <a href="http://www.cloudlock.com"><div class="brand"></div></a>
@@ -23,10 +25,24 @@ options="{
 }"
           colours="colors"
           ></canvas>
-  <p class="center"><i>NOTE: Inactive users will not be displayed.</i></p>
+  <p class="center"><i>NOTE: Inactive users will not be displayed</i></p>
 </div>
 <hr>
 
+<div class="header">
+  <h1><b>{{stats.totalDistance}}</b> miles walked {{stats.days}}!</h1>
+  <div class="pure-g">
+    <div class="pure-u-1-3"><h2>Total number of users:<br>
+        <b>{{stats.totalUsers}}</b></h2></div>
+
+    <div class="pure-u-1-3"><h2>Average distance:<br>
+        <b>{{stats.averageDist}}</b> miles</h2></div>
+
+    <div class="pure-u-1-3"><h2>Active users average distance:
+        <b>{{stats.averageActiveDist}}</b> miles</h2></div>
+  </div>
+</div>
+<hr>
 <!--
  <div class="center">
 
@@ -35,10 +51,11 @@ options="{
  </div> -->
  <div class="pure-g" id="groups">
   <div class="pure-u-5-5">
-  <p class="center"><i>Click on a users to add them to a group.</i></p>
-    <div class="pure-menu">
+  <p class="center"><i>Click on a group to view their stats.</i></p>
 
-      <br>
+
+  <div class="pure-menu">
+    <br>
       <div ng-repeat="group in groups">
         <div class="group-container">
           <h4  ng-click="setActiveGroup(group.name); gotoAnchor('anchor-top')" >{{group.name}}</h4>
@@ -53,7 +70,7 @@ options="{
               </tr>
             </thead>
             <tbody ng-repeat="user in group.users">
-              <tr ng-click="openModal(user)">
+              <tr>
                 <td>{{user.fullName}}</td>
                 <td>{{user.distance}}</td>
                 <td>{{((user.distance / distanceToObjective) * 100).toFixed(2)}}</td>

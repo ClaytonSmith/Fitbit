@@ -1,8 +1,5 @@
 'use strict';
 
-
-
-
 // Helper function 
 Array.prototype.insert = function (index, item) {
     this.splice(index, 0, item);
@@ -109,7 +106,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     $scope.graphDataSet = [];    
     $scope.paths        = {};
     $scope.markers      = {};
-    
+    $scope.stats        = {};
     $scope.center       = {
         lat: 37.5960374,
         lng: -97.0452066,
@@ -163,10 +160,22 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
                     
                     // Have graph and charts redraw
                     $scope.setActiveGroup($scope.activeGroup);
+                    calcStats();
 	        });
         });
     }
+    
+    function calcStats(){
 
+        // TODO: DAYS
+        $scope.stats.days = 'today'
+        $scope.stats.totalDistance      = $scope.groups['All users'].users.reduce(function(sum, obj){ return sum + obj.distance }, 0); 
+        $scope.stats.totalUsers         = $scope.groups['All users'].users.length;
+        $scope.stats.averageDist        = ($scope.stats.totalDistance / $scope.stats.totalUsers).toFixed(2);
+        $scope.stats.averageActiveDist  = ($scope.stats.totalDistance
+                                           /$scope.groups['All users'].users.filter(function(obj){return obj.distance ;}).length).toFixed(2);
+    }
+    
     $scope.setActiveGroup = function(groupName){
         if( !$scope.groups.hasOwnProperty(groupName)) return;
         activeGroup( $scope.groups[groupName] );
@@ -308,7 +317,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
 
 
     function getTimeStampFromTime(time){
-	return time.getHours() + ':' + time.getMinutes();  // Str
+	return time.getHours() + ':' + (time.getMinutes() ? time.getMinutes() : '00') ;  // Str
     }
     
     function getTimeStamp(){
