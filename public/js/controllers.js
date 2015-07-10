@@ -65,12 +65,13 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     $scope.activeGroup = 'All users' ;
     $scope.groups = {'All users': {name: 'All users', users: []}};
 
+    // init update 
     getData();
     
     function update(data){
 
 	$scope.groups['All users'].users = $filter('orderBy')(data, '-distance');
-        $rootScope.allUsers =  (JSON.parse(JSON.stringify($filter('orderBy')(data, '-fullName'))));
+        $rootScope.allUsers = (JSON.parse(JSON.stringify($filter('orderBy')(data, '-fullName'))));
 
         $scope.groups['All users'].users.forEach(function(obj){ obj.color = ( obj.color ? obj.color : (randomColor(obj.fullName))); obj.type = 'USER'; });
 
@@ -82,17 +83,18 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
         // populate the group with its users 
         $scope.groups['All users'].users.filter(function(obj){ return obj.group ? true : false })
             .forEach(function(obj){ $scope.groups[obj.group].users.push(obj) });
-
-        // Fill in some basic data 
+        
+        // Fill in some basic data
+        // Groups now look like users with a total distance and distances
         for( var key in $scope.groups ){
-            $scope.groups[key].distance  = $scope.groups[key].users.reduce(function(a,b){ return a + (b.distance === null? 0 :b.distance); }, 0).toFixed(2);
+            $scope.groups[key].distance  = $scope.groups[key].users.reduce(function(a,b){ return a + (b.distance === null? 0 : b.distance); }, 0).toFixed(2);
             $scope.groups[key].distances = $scope.groups[key].users.reduce(
-                function(sum, obj){ return obj.distances.map(function(el,index){return sum[index] +  el; });}, basicArray.map(function(){return 0;}));                        
+                function(sum, obj){ return obj.distances.map(function(el,index){return sum[index] +  el; }); }, basicArray.map(function(){return 0;}));                        
+            // swag
         }
         
         // Have graph and charts redraw
         $scope.setActiveGroup($scope.activeGroup);
-        calcStats();
     }
 
     function getData(){
@@ -103,31 +105,33 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
                 location.reload();
             }
         }).then(function(thing){
-            
             $http.get('api/update')
-	        .success(function(data, status, headers, config) {
-                    
+	        .success(function(data, status, headers, config) {        
                     update(data);
 	        });
         });
     }
     
-    function calcStats(){
+    $scope.setActiveGroup = function(groupName){
+        if( !$scope.groups.hasOwnProperty(groupName)) return;
+        $scope.activeGroup = groupName;
+        
+        activeGroup( $scope.groups[groupName] );
+        activeUsers( $scope.groups[groupName].users.filter(function(obj){return obj.distance !== 0 ;}) );
+        calcStats(groupName);
+    }
+
+    function calcStats(group){
 
         // TODO: DAYS
         $scope.stats.days = 'today'
-        $scope.stats.totalDistance      = $scope.groups['All users'].users.reduce(function(sum, obj){ return sum + obj.distance }, 0).toFixed(2); 
-        $scope.stats.totalUsers         = $scope.groups['All users'].users.length;
+        $scope.stats.totalDistance      = $scope.groups[group].users.reduce(function(sum, obj){ return sum + obj.distance }, 0).toFixed(2); 
+        $scope.stats.totalUsers         = $scope.groups[group].users.length;
         $scope.stats.averageDist        = ($scope.stats.totalDistance / $scope.stats.totalUsers).toFixed(2);
-        $scope.stats.averageActiveDist  = ($scope.stats.totalDistance                     /$scope.groups['All users'].users.filter(function(obj){return obj.distance ;}).length).toFixed(2);
-    }
-    
-    $scope.setActiveGroup = function(groupName){
-        if( !$scope.groups.hasOwnProperty(groupName)) return;
-        activeGroup( $scope.groups[groupName] );
-        activeUsers( $scope.groups[groupName].users.filter(function(obj){return obj.distance !== 0 ;}) );
+        $scope.stats.averageActiveDist  = ($scope.stats.totalDistance / $scope.groups[group].users.filter(function(obj){return obj.distance ;}).length).toFixed(2);
     }
 
+    
     // adds users to graph 
     function activeGroup(group){
         group = JSON.parse(JSON.stringify(group));;
