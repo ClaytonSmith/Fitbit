@@ -3,8 +3,8 @@
 <div class="">
   <div class="pure-u-1-1 navbar" id="anchor-top">
     <a href="http://www.cloudlock.com"><div class="brand"></div></a>
-    <a class="join-us" href="/authorize" target="_blank"><button class="pure-button">Join Our Team</button></a>
-    <a class="join-us" href="/settings"><button class="pure-button">Settings</button></a>
+    <a class="join-us pure-button" href="/authorize" target="_blank">Join Our Team</a>
+    <a class="join-us pure-button" href="/settings">Settings</a>
   </div>
 
   <!-- Progress Bar Directive-->
@@ -55,7 +55,7 @@ options="{
         <div class="group-container">
           <h4  ng-click="setActiveGroup(group.name); gotoAnchor('anchor-top')" >{{group.name}}</h4>
           <!--<span class="pure-menu-heading"></span> -->
-          <table class="pure-table user-table pure-table-horizontal" ng-click="setActiveGroup(group.name); gotoAnchor('anchor-top')">
+          <table class="pure-table user-table pure-table-horizontal" ng-click="setActiveGroup(group.name); gotoAnchor('anchor-top', $event)">
             <thead>
               <tr>
                 <th>User</th>

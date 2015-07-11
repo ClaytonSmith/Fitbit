@@ -101,8 +101,18 @@ canvas{
     cursor:pointer;
 }
 
+.group-container table{
+    background-color: rgba(0,255,255,0);
+    
+    -webkit-transition: background-color 250ms ease-in;
+    -moz-transition: background-color 250ms ease-in;
+    -o-transition: background-color 250ms ease-in;
+    -ms-transition: background-color 250ms ease-in;
+    transition: background-color 250ms ease-in;
+}
+
 .group-container table:hover{
-    background: rgba(0,0,0,0.03)
+    background-color: rgba(0,0,0,0.03)
 }
 
 .group-list ul {

@@ -28,7 +28,7 @@ function appCtrl($scope, $http, $location, $rootScope){
 
 
 /* Controllers */
-function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyModal){
+function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyModal, $anchorScroll){
     $rootScope.appData = getInfo.getData();    
 
     var cloudLockLogo = "http://icons.iconarchive.com/icons/wackypixel/dogs-n-puppies/128/Puppy-1-icon.png";
@@ -278,8 +278,8 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
 	return color;
     }
 
-    $scope.gotoAnchor = function(anchor) {
-        if ($location.hash() !== anchor) {
+    $scope.gotoAnchor = function(anchor, event) {
+  /*      if ($location.hash() !== anchor) {
             // set the $location.hash to `newHash` and
             // $anchorScroll will automatically scroll to it
             $location.hash(anchor);
@@ -287,11 +287,17 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
             // call $anchorScroll() explicitly,
             // since $location.hash hasn't changed
             $anchorScroll();
-        }
+            }*/
+        event.preventDefault();
+        event.stopPropagation();
+        
+        $location.hash(anchor);
+        console.log($location.hash());
+        $anchorScroll();
     }
     
     $scope.$on('$locationChangeStart', function(ev) {
-        ev.preventDefault();
+//        ev.preventDefault();
     });
 }
 
@@ -347,7 +353,7 @@ function settingsCtrl($scope, $http, $location, $rootScope, $filter, $fancyModal
 
 groupModalCtrl.$inject = ['$scope', '$http', '$location', '$rootScope', '$filter',  '$fancyModal'];
 settingsCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter', '$fancyModal'];
-mapCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter', 'getInfo',  '$fancyModal'];
+mapCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter', 'getInfo',  '$fancyModal', '$anchorScroll'];
 appCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter'];
 
 
