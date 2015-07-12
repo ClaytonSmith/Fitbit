@@ -174,6 +174,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     
     $scope.$watch( 'activeGroupName', function(newValue, oldValue){
         if( newValue === '' ) return ;
+
         console.log(newValue);
         $scope.setActiveGroup(newValue);
     });        
@@ -290,8 +291,10 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
             }*/
         event.preventDefault();
         event.stopPropagation();
+
+        console.log(event);
         
-        $location.hash(anchor);
+//        $location.hash(anchor);
         console.log($location.hash());
         $anchorScroll();
     }
