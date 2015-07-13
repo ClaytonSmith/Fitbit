@@ -67,9 +67,9 @@ options="{
             <tbody ng-repeat="user in group.users">
               <tr>
                 <td>{{user.fullName}}</td>
-                <td>{{user.distance}}</td>
-                <td>{{((user.distance / distanceToObjective) * 100).toFixed(2)}}</td>
-                <td>{{((user.distance / group.distance) * 100).toFixed(2)}}</td>
+                <td>{{user.historicDistance}}</td>
+                <td>{{((user.historicDistance / distanceToObjective) * 100).toFixed(2)}}</td>
+                <td>{{((user.historicDistance / group.historicDistance) * 100).toFixed(2)}}</td>
               </tr>
             </tbody>
           </table>

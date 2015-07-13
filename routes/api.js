@@ -15,7 +15,6 @@ function pullFitbitData(uID, uAK){
 }
 
 exports.update = function(req, res, next){
-    console.log('Updating database.');
     req.db.users.find().toArray( function(err, item){  
         res.json(item);
     });
@@ -59,7 +58,9 @@ exports.updateUserInfo = function(req, res, next){
                         });   
 }
 
-
 exports.getHistory = function(req, res, next){      
-    console.log('User is being added.');
+    console.log();
+    req.db.history.find().toArray( function(err, item){  
+        res.json(item);
+    });    
 } 

@@ -1,5 +1,38 @@
 'use strict';
 
+
+/*
+  user schema = {
+  id:  object // method 1 of identifacation 
+  atc:  num // method 2 of identifacation 
+  group: string // may or may not exist. not part of group if exist. 
+  color: hex string // user display color
+  distance: int // current daily distance
+  distances: [] // running total of todays distances
+  }
+
+
+  history schema = {
+  id:  object // method 1 of identifacation 
+  atc:  int // method 2 of identifacation 
+  records: [
+  {},
+  {},
+  {}, 
+  {} ...
+  ]
+  }
+
+  record schema = {
+  date: object // date of record 
+  settings: object // server settings for that day (like time scale)
+  distance: int // distance for the day
+  distances: [] // distances for the day
+  }
+*/
+
+
+
 // Helper function 
 Array.prototype.insert = function (index, item) {
     this.splice(index, 0, item);
@@ -59,93 +92,158 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     $scope.defaults      = {
         scrollWheelZoom: false
     };
-    
+
+    // from would be today
+    // to would be how many days in the past will be viewed
+    $scope.history = {};
+    $scope.history.from = 0; // 0 == today
+    $scope.history.to   = 4;
     
     // Init 
     $scope.activeGroup = 'All users' ;
     $scope.groups = {'All users': {name: 'All users', users: []}};
 
-    // init update 
-    getData();
-    
-    function update(data){
+   
+    function getData(){
+        return $http.get('api/info').then(function(info){
 
+            // refresh client if UI stageGroups
+            if( $rootScope.appData.clientVersion < info.data.clientVersion )  location.reload();
+            
+        }).then(function(thing){
+            $http.get('api/update')
+	        .success(function(data, status, headers, config) {        
+                    stageGroups(data);
+                    $scope.setActiveGroup($scope.activeGroup);
+	        });
+        }).then(function(){        
+            console.log('I HAVE THE HISTORY');
+            // Get user history after user data has been gotten
+            
+            if( !$rootScope.userHistory ){
+                $http.get('api/get_history')
+                    .then(function(data, status, headers, config){
+                        console.log(data);
+                        $rootScope.userHistory = data.data;
+                        bindUserData();
+                    });
+            }
+        });
+        
+    }
+    
+    
+    // devide users into groups
+    // Run when user list is pulled from server
+    function stageGroups(data){
+        console.log('stage');        
 	$scope.groups['All users'].users = $filter('orderBy')(data, '-distance');
         $rootScope.allUsers = (JSON.parse(JSON.stringify($filter('orderBy')(data, '-fullName'))));
-
-        $scope.groups['All users'].users.forEach(function(obj){ obj.color = ( obj.color ? obj.color : (randomColor(obj.fullName))); obj.type = 'USER'; });
-
+        
+        $scope.groups['All users'].users.
+            forEach(function(user){
+                user.color = ( user.color ? user.color : (randomColor(user.fullName)));
+                user.historicDistance = 0;
+                user.historicDistances = basicArray.map(function(){return 0;});
+                    user.type = 'USER';
+            });
+        
         // Build list of all groups
         // Init each groups object
         $scope.groups['All users'].users.filter(function(obj){ return obj.group ? true : false })
-            .forEach(function(obj){ $scope.groups[obj.group] = {name: obj.group, users: [], distance: 0}; });
+            .forEach(function(obj){ $scope.groups[obj.group] = {name: obj.group, users: [], historicDistance: 0, historicDistances: []}; });
 
         // populate the group with its users 
         $scope.groups['All users'].users.filter(function(obj){ return obj.group ? true : false })
             .forEach(function(obj){ $scope.groups[obj.group].users.push(obj) });
         
-        // Fill in some basic data
-        // Groups now look like users with a total distance and distances
-        for( var key in $scope.groups ){
-            $scope.groups[key].distance  = $scope.groups[key].users.reduce(function(a,b){ return a + (b.distance === null? 0 : b.distance); }, 0).toFixed(2);
-            $scope.groups[key].distances = $scope.groups[key].users.reduce(
-                function(sum, obj){ return obj.distances.map(function(el,index){return sum[index] +  el; }); }, basicArray.map(function(){return 0;}));                        
-            // swag
-        }
+        $scope.groups['All users'].users.forEach(function(user){
+            user.historicDistance  = user.distance;
+            user.historicDistances = user.distances;
+        });
+       
         
-        // Have graph and charts redraw
-        $scope.setActiveGroup($scope.activeGroup);
+        for( var key in $scope.groups ){
+            calcGroupStats( $scope.groups[key] );   
+        }
+
     }
 
-    function getData(){
-        $http.get('api/info').then(function(info){
-            console.log( $rootScope.appData, info.data);
-            // refresh client if UI update
-            if( $rootScope.appData.clientVersion < info.data.clientVersion ){
-                location.reload();
-            }
-        }).then(function(thing){
-            $http.get('api/update')
-	        .success(function(data, status, headers, config) {        
-                    update(data);
-	        });
-        });
-    }
-    
-    $scope.setActiveGroup = function(groupName){
-        if( !$scope.groups.hasOwnProperty(groupName)) return;
-        $scope.activeGroup = groupName;
+    // updates group stats
+    // Runs with timescale change or when user list is pulled from server
+    function calcGroupStats(group){
         
-        activeGroup( $scope.groups[groupName] );
-        activeUsers( $scope.groups[groupName].users.filter(function(obj){return obj.distance !== 0 ;}) );
-        calcStats(groupName);
+        // Groups now look like users with a total distance and distances
+        group.historicDistance  = group.users.reduce(function(a,b){ return a + (b.historicDistance === null? 0 : b.historicDistance ); }, 0).toFixed(2);
+        group.historicDistances = group.users.reduce(function(sum, obj){ return obj.historicDistances.map(function(el, index){return sum[index] +  el; }); }, basicArray.map(function(){return 0;}));
+    }
+ 
+    // Binds a users histort record with their data object
+    // Now the user can look at their past data
+    // Runs when user list is pulled from server
+    function bindUserData(){
+        // not the most efficiant method but it works
+        console.log($rootScope.userHistory);
+        $scope.groups['All users'].users.map(function(user){user.history = $rootScope.userHistory.filter(function(record){ return record.act === user.atc }); });
     }
 
     function calcStats(group){
 
         // TODO: DAYS
         $scope.stats.days = 'today'
-        $scope.stats.totalDistance      = $scope.groups[group].users.reduce(function(sum, obj){ return sum + obj.distance }, 0).toFixed(2); 
+        $scope.stats.totalDistance      = $scope.groups[group].users.reduce(function(sum, obj){ return sum + obj.historicDistance }, 0).toFixed(2); 
         $scope.stats.totalUsers         = $scope.groups[group].users.length;
         $scope.stats.averageDist        = ($scope.stats.totalDistance / $scope.stats.totalUsers).toFixed(2);
-        $scope.stats.averageActiveDist  = ($scope.stats.totalDistance / $scope.groups[group].users.filter(function(obj){return obj.distance ;}).length).toFixed(2);
+        $scope.stats.averageActiveDist  = ($scope.stats.totalDistance / $scope.groups[group].users.filter(function(obj){return obj.historicDistance ;}).length).toFixed(2);
     }
-
     
     // adds users to graph 
-    function activeGroup(group){
+    function displayActiveGroup(group){
         group = JSON.parse(JSON.stringify(group));;
-        var sudoUser = {
-            displayName: group.name,
-            distances: group.distances
-        }
 
+        console.log(group);
+        group.users.forEach(function(user){
+            user.historicDistance = [];
+            user.historicDistances = [];
+            user.historicDistance.push(0);
+        });
+
+        console.log($rootScope.userHistory);
+        // If history has been loaded
+        if( $rootScope.userHistory ){
+            console.log('here');
+            
+            // filter history
+            // It's assumed that the last element in the historic obj is the data from yesterday
+            // Might want to make the filtering method more robust
+            group.users.map(function(user){ user.historicWindow = user.history.records.filter(
+                function(el, index){ return index >= (x.length - $scope.history.from) && (x.length - $scope.history.to) >= index; }); });
+
+            // pull distance data from records
+            // This needs to be able to handle different start and ends time by padding every record accordingly
+            // Can leave like this fornow as 5am is the start time for every record
+            group.users.map(function(user){ user.historicDistances = user.historicWindow.map(function(record){ return record.distances; }); });
+            group.users.map(function(user){ user.historicDistance  = user.historicWindow.map(function(record){ return record.distance; }); });
+        }
         
+        // Include today if needed 
+        if( $scope.history.from === 0 ){
+            group.users.forEach(function(user){user.historicDistances.push(user.distances); });
+            group.users.forEach(function(user){user.historicDistance.push(user.distance); });
+        }
+        
+        // sum historic distances
+        // historic distances = [[1, 2, 3, ...],[4, 5, 6, ...],[7, 8, 9, ...], ...] => [12, 15, 18]
+        group.users.forEach(function(user){ user.historicDistances = user.historicDistances.reduce(
+            function(sum, obj){ return obj.map(function(el, index){ return sum[index] +  el; }); }, basicArray.map(function(){return 0;})); });
+        
+        group.users.forEach(function(user){ user.historicDistance = user.historicDistance.reduce(function(sum, el){return sum + el}, 0); });
+
+        console.log(group.users.map(function(obj){return obj.color; })  );
         // update graph
         $scope.graphSeries     = group.users.map(function(obj){return obj.displayName; });     
-        $scope.graphDataSet    = group.users.map(function(obj){return obj.distance === 0 ? [] : obj.distances; });  //.splice(0, calcLastUpdateIndex() + 1) });       
+        $scope.graphDataSet    = group.users.map(function(obj){return obj.historicDistance === 0 ? [] : obj.historicDistances; });
         $scope.colors          = group.users.map(function(obj){return obj.color; });        
-        // Other things
     }
 
     // Adds users to map
@@ -159,7 +257,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
         createPaths(users);
        
         $scope.distanceToObjective = getDistanceFromLatLonInM( startDest.lat, startDest.lng, endDest.lat, endDest.lng);
-        
+
         var calculatedDist = getDistanceFromLatLonInM(users[users.length - 1].path.start.lat,
                                                       users[users.length - 1].path.end.lng,
                                                       startDest.lat, startDest.lng);
@@ -175,8 +273,8 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     $scope.$watch( 'activeGroupName', function(newValue, oldValue){
         if( newValue === '' ) return ;
 
-        console.log(newValue);
-        $scope.setActiveGroup(newValue);
+  //      console.log(newValue);
+//        $scope.setActiveGroup(newValue);
     });        
         
     // Listen for server update. Socket.io knows what domain to listen to
@@ -191,11 +289,12 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
 	var nextCoords = {lat: 0, lng: 0}; // Temp value
 	
 	for( var i = 0; i < users.length ; i++ ){
-	    users[i].path = {start: prevCoords, end: prevCoords = calcCoords( prevCoords, users[i].distance )};
+	    users[i].path = {start: prevCoords, end: prevCoords = calcCoords( prevCoords, users[i].historicDistance )};
 	}
+        
 	return users;
     }
-    
+
     function createPaths(users){
 
         console.log(users);
@@ -217,7 +316,7 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
 		title:   user.name,
 		message: user.name,
 		icon: {
-		    iconUrl: user.avatar || cloudLockLogo,
+		    iconUrl: user.avatar,
 		    iconSize:     [40, 40],
 		    iconAnchor:   [20, 40],
 		    popupAnchor:  [3, -32],
@@ -280,28 +379,26 @@ function mapCtrl($scope, $http, $location, $rootScope, $filter, getInfo, $fancyM
     }
 
     $scope.gotoAnchor = function(anchor, event) {
-  /*      if ($location.hash() !== anchor) {
-            // set the $location.hash to `newHash` and
-            // $anchorScroll will automatically scroll to it
-            $location.hash(anchor);
-        } else {
-            // call $anchorScroll() explicitly,
-            // since $location.hash hasn't changed
-            $anchorScroll();
-            }*/
         event.preventDefault();
-        event.stopPropagation();
-
-        console.log(event);
-        
-//        $location.hash(anchor);
-        console.log($location.hash());
+        event.stopPropagation();       
         $anchorScroll();
     }
+
+    // init stageGroup
+    getData();
     
-    $scope.$on('$locationChangeStart', function(ev) {
-//        ev.preventDefault();
-    });
+    $scope.setActiveGroup = function(groupName){
+        if( !$scope.groups.hasOwnProperty(groupName)) return;
+
+        $scope.activeGroup = groupName;
+
+        displayActiveGroup(  $scope.groups[ $scope.activeGroup ] );
+        
+        activeUsers( $scope.groups[ $scope.activeGroup ].users.filter(function(obj){return obj.historicDistance !== 0 ;}) );
+
+        calcStats(groupName);
+    }
+
 }
 
 function groupModalCtrl($scope, $http, $location, $rootScope, $filter, $fancyModal){
@@ -338,7 +435,7 @@ function settingsCtrl($scope, $http, $location, $rootScope, $filter, $fancyModal
         
         $http.post('/api/update_user_info', userUpdate )
             .success(function(data){
-                //                update();
+                //                stageGroups();
                 console.log('Expecting update req from server. GOODLUCK USER!');
             }); 
     }
@@ -355,7 +452,7 @@ function settingsCtrl($scope, $http, $location, $rootScope, $filter, $fancyModal
 
 
 groupModalCtrl.$inject = ['$scope', '$http', '$location', '$rootScope', '$filter',  '$fancyModal'];
-settingsCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter', '$fancyModal'];
+settingsCtrl.$inject   = ['$scope', '$http', '$location', '$rootScope', '$filter', '$fancyModal'];
 mapCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter', 'getInfo',  '$fancyModal', '$anchorScroll'];
 appCtrl.$inject  =  ['$scope', '$http', '$location', '$rootScope', '$filter'];
 
